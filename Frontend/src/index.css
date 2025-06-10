@@ -1,0 +1,285 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Black.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Black.woff") format("woff");
+        font-weight: 900;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-BlackItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-BlackItalic.woff") format("woff");
+        font-weight: 900;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Black.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Black.woff") format("woff");
+        font-weight: 900;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Bold.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Bold.woff") format("woff");
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-BlackItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-BlackItalic.woff") format("woff");
+        font-weight: 900;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-BoldItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-BoldItalic.woff") format("woff");
+        font-weight: bold;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Heavy.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Heavy.woff") format("woff");
+        font-weight: 900;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-HeavyItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-HeavyItalic.woff") format("woff");
+        font-weight: 900;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Light.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Light.woff") format("woff");
+        font-weight: 300;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-LightItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-LightItalic.woff") format("woff");
+        font-weight: 300;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Medium.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Medium.woff") format("woff");
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-MediumItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-MediumItalic.woff") format("woff");
+        font-weight: 500;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Regular.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Regular.woff") format("woff");
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-RegularItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-RegularItalic.woff") format("woff");
+        font-weight: normal;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Semibold.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Semibold.woff") format("woff");
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-SemiboldItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-SemiboldItalic.woff") format("woff");
+        font-weight: 600;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Thin.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Thin.woff") format("woff");
+        font-weight: 100;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-ThinItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-ThinItalic.woff") format("woff");
+        font-weight: 100;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-Ultralight.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-Ultralight.woff") format("woff");
+        font-weight: 100;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "SFProDisplay";
+        src: url("./assets/fonts/SFProDisplay-UltralightItalic.woff2") format("woff2"), url("./assets/fonts/SFProDisplay-UltralightItalic.woff") format("woff");
+        font-weight: 100;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    html,
+    pre {
+        font-family: "SFProDisplay", sans-serif;
+    }
+
+    body {
+        letter-spacing: 0.025em;
+    }
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.bg-gradient-loading {
+    background: linear-gradient(90deg, rgba(66,153,225,0) 0%, rgba(66,153,225,0.3) 50%, rgba(128,90,213,0) 100%);
+    background-size: 200% 100%;
+}
+
+.animate-skeleton {
+    animation: skeleton-loading 1.5s infinite linear;
+}
+
+.delay-0 { animation-delay: 0s; }
+.delay-150 { animation-delay: 0.15s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-450 { animation-delay: 0.45s; }
+.delay-600 { animation-delay: 0.6s; }
+.delay-750 { animation-delay: 0.75s; }
+
+.loader {
+    width: 175px;
+    height: 80px;
+    display: block;
+    margin: auto;
+    background-image: radial-gradient(circle 25px at 25px 25px, #f8fafc 100%, transparent 0), radial-gradient(circle 50px at 50px 50px, #f8fafc 100%, transparent 0), radial-gradient(circle 25px at 25px 25px, #f8fafc 100%, transparent 0), linear-gradient(#f8fafc 50px, transparent 0);
+    background-size: 50px 50px, 100px 76px, 50px 50px, 120px 40px;
+    background-position: 0 30px, 37px 0, 122px 30px, 25px 40px;
+    background-repeat: no-repeat;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.loader::before {
+    content: '';
+    left: 60px;
+    bottom: 18px;
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #FF3D00;
+    background-image: radial-gradient(circle 8px at 18px 18px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 18px 0px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 0px 18px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 36px 18px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 18px 36px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 30px 5px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 30px 5px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 30px 30px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 5px 30px, #f8fafc 100%, transparent 0), radial-gradient(circle 4px at 5px 5px, #f8fafc 100%, transparent 0);
+    background-repeat: no-repeat;
+    box-sizing: border-box;
+    animation: rotationBack 3s linear infinite;
+}
+
+.loader::after {
+    content: '';
+    left: 94px;
+    bottom: 15px;
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #FF3D00;
+    background-image: radial-gradient(circle 5px at 12px 12px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 12px 0px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 0px 12px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 24px 12px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 12px 24px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 20px 3px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 20px 3px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 20px 20px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 3px 20px, #f8fafc 100%, transparent 0), radial-gradient(circle 2.5px at 3px 3px, #f8fafc 100%, transparent 0);
+    background-repeat: no-repeat;
+    box-sizing: border-box;
+    animation: rotationBack 4s linear infinite reverse;
+}
+
+@keyframes rotationBack {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(-360deg);
+    }
+}
+
+.loading-text p {
+    position: relative;
+}
+
+.loading-text p::after {
+    position: absolute;
+    animation: b 3s infinite linear;
+    content: "";
+    left: 105%;
+}
+
+@keyframes b {
+    0% {
+        content: "";
+    }
+
+    10% {
+        content: ".";
+    }
+
+    40% {
+        content: "..";
+    }
+
+    70% {
+        content: "...";
+    }
+
+    100% {
+        content: "";
+    }
+}
