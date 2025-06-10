@@ -1,0 +1,5 @@
+Remind to change goal if assess from profile and already have a similar cert or roadmap
+Update cert should show option to update roadmap or not
+Besides course links, should also provide learning material links
+Check Progress and change status based on user pace to show option to update or not
+Future related cert after the roadmap
