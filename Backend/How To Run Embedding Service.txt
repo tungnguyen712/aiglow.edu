@@ -1,0 +1,40 @@
+Install libs: pip install pgvector psycopg2-binary sqlalchemy fastapi uvicorn transformers torch (if you want to re-install)
+====================================================================================================
+
+Go to the service dir
+run in terminal: 
+.\venv\Scripts\Activate.ps1
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+*DB should be up-and-running first
+====================================================================================================
+
+Test using Postman or Curl command: 
+
+*POST http://localhost:8000/embed
+Content-Type: application/json
+
+{
+  "text": "Your input goes here."
+}
+
+Expected outcome:
+{
+  "embedding": [0.0321, -0.0423, ..., 0.0554]
+}
+
+*POST http://localhost:8000/search
+Content-Type: application/json
+
+[
+  {
+    "id": 1,
+    "text": "Something close to your first input."
+  }
+]
+
+====================================================================================================
+POSTGRES_USER: rag_user
+POSTGRES_PASSWORD: rag_password
+POSTGRES_DB: rag_db
+ports: "5432:5432"
+
