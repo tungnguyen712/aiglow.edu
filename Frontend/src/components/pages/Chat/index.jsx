@@ -1,0 +1,493 @@
+// import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+// import { mainApi } from "@/services/api";
+// import { URLS } from "@/services/url";
+// import { getAccessToken, headers } from "@/utils/auth";
+// import { getAccessToken } from "@/utils/auth";
+import { useTheme } from "@/context/ThemeContext";
+// import { useFormDBContext } from "@/context/DBFromContext";
+
+import Layout from "@/components/layouts";
+import { Button, Skeleton } from "@/components/commons";
+import { MicrophoneIcon, SentIcon, StopCircle } from "@/assets/icons";
+import Message from "@/components/views/Message";
+import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/cjs/styles/hljs/index.js";
+// import config from "@/config";
+import RenderChart from "@/components/views/RenderChart";
+// import { Flip, toast } from "react-toastify";
+// import { MockImage, ImageNotFound } from "@/assets/images";
+import { motion } from "framer-motion";
+import { TypeAnimation } from 'react-type-animation';
+import { courseNodes } from "@/mock/data";
+import LearningPath from "@/components/views/LearningPath"
+// import { p } from "framer-motion/client";
+// import { Modal } from "@/components/commons";
+import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+function Chat() {
+    const { roomId } = useParams();
+    // const navigate = useNavigate();
+    const { darkMode } = useTheme();
+    // const { formData, setFormData } = useFormDBContext();
+    const [message, setMessage] = useState("");
+    const [listening, setListening] = useState(false);
+    const [chatRs, setChatRs] = useState({});
+    const [sending, setSending] = useState(false);
+    // const [chat, setChat] = useState([]);
+    const chat = null;
+    const [showChart, setShowChart] = useState(false);
+
+    // const [showModal, setShowModal] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const { formState } = useMultiStepsFormContext();
+    // const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [courseList, setCourseList] = useState(courseNodes.filter(course => course.roadmapId === roomId));
+    // const { link, setLink } = useState([]);
+
+    // const [mockMessage, setMockMessage] = useState("Try Typing Something!");
+
+    // const courses = courseNodes.filter(course => course.roadmapId === roomId);
+
+    const handleInput = (e) => {
+        e.target.style.height = "auto";
+        e.target.style.height = `${Math.min(e.target.scrollHeight, 96)}px`;
+        setMessage(e.target.value);
+    };
+
+    // const handlePrepareData = async (data) => {
+    //     setIsSubmitting(true);
+    //     try {
+    //         let roadmapResponse;
+    //         formState({ data });
+    //         if (data.knowledgeSource === "profile") {
+    //             roadmapResponse = await mainApi.post(URLS.CHAT.SEND_ROADMAP_REQ_AUTO, data, {headers: {
+    //                     "Content-Type": "application/json"
+    //             }});
+    //         } else {
+    //             roadmapResponse = await mainApi.post(URLS.CHAT.SEND_ROADMAP_REQ, data, {headers: {
+    //                     "Content-Type": "application/json"
+    //             }});
+    //         }
+    //         if (roadmapResponse.data) {
+    //             console.log("Response data:", roadmapResponse.data);
+    //             navigate(`/chat/${roadmapResponse.data.roadmap.roadmapId}`);
+    //         } else {
+    //             console.error("Received empty or invalid response data.");
+    //         }
+            
+    //     } catch (e) {
+    //         console.error("Error preparing data:", e);
+    //     } finally {
+    //         // setIsPendingNavigation(false);
+    //         setIsSubmitting(false);
+    //     }
+    // };
+
+    // const handleShowToast = () => {
+    //     setShowToast(true);
+    // };
+
+    const handleCloseToast = () => {
+        setShowToast(false);
+    };
+
+    // const handleUpdateFromToast = () => {
+    //     setShowToast(false);
+    //     setShowModal(true);
+    // };
+
+    const handleCheckboxChange = (courseId) => {
+        console.log("Checkbox clicked for course ID:", courseId);
+        const updatedCourseList = courseList.map(course =>
+            course.id === courseId
+            ? { ...course, status: course.status === "finished" ? "unfinished" : "finished" }
+            : course
+        );
+        setCourseList(updatedCourseList);
+    }
+
+    const toggleListening = () => {
+        if (!recognition) {
+            alert("Speech Recognition API is not supported in this browser.");
+            return;
+        }
+
+        if (listening) {
+            recognition.stop();
+        } else {
+            recognition.start();
+        }
+
+        console.log("Data:", formState);
+    };
+
+    useEffect(() => {
+        if (!recognition) return;
+
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = "en-UK";
+
+        recognition.onstart = () => {
+            setListening(true);
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = Array.from(event.results)
+                .map(result => result[0].transcript)
+                .join("");
+            setMessage(transcript);
+        };
+
+        recognition.onend = () => {
+            setListening(false);
+        };
+
+        recognition.onerror = (event) => {
+            console.log(event.error);
+            setListening(false);
+        };
+
+    }, [roomId]);
+
+    // const handleNewChat = () => {
+    //     setFormData({
+    //         type: "",
+    //         dbms: "",
+    //         username: "",
+    //         password: "",
+    //         databaseName: "",
+    //         host: "",
+    //         port: "",
+    //     })
+    //     setShowModal(!showModal)
+    // }
+
+    // const showRoom = useCallback(
+    //     async () => {
+    //         try {
+    //             const showResponse = await mainApi.get(URLS.CHAT.SHOW_ROOM(roomId), {
+    //                 headers: {
+    //                     Authorization: `Bearer ${getAccessToken()}`,
+    //                 },
+    //                 withCredentials: true,
+    //             });
+    //             if (JSON.stringify(showResponse.data) !== JSON.stringify(chat)) {
+    //                 setChat(showResponse.data);
+    //                 setFormData({
+    //                     type: showResponse.data.type,
+    //                     dbms: showResponse.data.dbms,
+    //                     username: showResponse.data.user,
+    //                     password: showResponse.data.password,
+    //                     databaseName: showResponse.data.database,
+    //                     host: showResponse.data.host,
+    //                     port: showResponse.data.port,
+    //                     status: showResponse.data.status,
+    //                 });
+    //             }
+    //         } catch (error) {
+    //             console.error(error);
+    //         }
+    //     }, [roomId, setFormData, chat]
+    // );
+
+    // useEffect(() => {
+    //     showRoom();
+    // }, [showRoom]);
+
+    const handleSendMessage = async () => {
+        // const data = { query: message, room_id: Number(roomId) };
+        setChatRs({})
+        setSending(true);
+        // setMockMessage("");
+        setTimeout(()=>{
+            setSending(false);
+            // setMockMessage(message);
+        }, 2000)
+        setShowChart(false);
+        // if (message) {
+        //     try {
+        //         setSending(true);
+        //         const sendMessage = await mainApi.post(URLS.CHAT.SEND_MESSAGE, data, { headers, withCredentials: true });
+        //         setChatRs(sendMessage.data);
+        //     } catch (e) {
+        //         console.error(e);
+        //         toast.error("An error has occurred. Please try again later.", {
+        //             position: "top-right",
+        //             autoClose: 2000,
+        //             hideProgressBar: false,
+        //             pauseOnHover: true,
+        //             draggable: true,
+        //             theme: "colored",
+        //             transition: Flip,
+        //             closeButton: false,
+        //         });
+        //     } finally {
+        //         await showRoom();
+        //         setShowChart(true)
+        //         setSending(false);
+        //         setMessage("");
+        //     }
+        // }
+    };
+
+    // const handleSaveAndClose = async () => {
+    //     try {
+    //         await mainApi.post(URLS.CHAT.SAVE_AND_CLOSE, { roomId: Number(roomId) }, {
+    //             headers,
+    //             withCredentials: true,
+    //         });
+    //         navigate(config.routes.HOME);
+    //     } catch (e) {
+    //         console.error(e);
+    //         toast.error("An error has occurred. Please try again later.", {
+    //             position: "top-right",
+    //             autoClose: 2000,
+    //             hideProgressBar: false,
+    //             pauseOnHover: true,
+    //             draggable: true,
+    //             theme: "colored",
+    //             transition: Flip,
+    //             closeButton: false,
+    //         });
+    //     }
+    // };
+
+    return (
+        <Layout 
+            title="Overview" 
+            fullBackground={false} 
+            sidebarShow={true}
+        > 
+            <div className="relative flex flex-col w-full mx-auto">
+                <div className="fixed top-4 right-4 z-50">
+                    
+                    {/* Toast to regenerate roadmap */}
+                    {showToast && (
+                        <div id="toast-interactive" className="align-center w-full max-w-xs p-4 text-gray-500 bg-white rounded-lg shadow-sm dark:bg-gray-800 dark:text-gray-400" role="alert">
+                            <div className="flex">
+                                <div className="inline-flex items-center justify-center shrink-0 w-8 h-8 text-blue-500 bg-blue-100 rounded-lg dark:text-blue-300 dark:bg-blue-900">
+                                    
+                                    <svg className="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 20">
+                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 1v5h-5M2 19v-5h5m10-4a8 8 0 0 1-14.947 3.97M1 10a8 8 0 0 1 14.947-3.97"/>
+                                    </svg>
+                                    <span className="sr-only">Refresh icon</span>
+                                </div>
+                                <div className="ms-3 text-sm font-normal">
+                                    <span className="mb-1 text-base font-semibold text-gray-900 dark:text-white">Edit Roadmap</span>
+                                    <div className="mb-2 text-sm font-normal">Do you want to generate a new roadmap?</div> 
+                                    <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <button
+                                            onClick={handleCloseToast}
+                                            className="inline-flex justify-center w-full px-2 py-1.5 text-sm font-medium text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800"
+                                        >
+                                            Yes
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button
+                                        onClick={handleCloseToast}
+                                        className="inline-flex justify-center w-full px-2 py-1.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 dark:bg-gray-600 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-700 dark:focus:ring-gray-700"
+                                        >
+                                            Not now
+                                        </button>
+                                    </div>
+                                    </div>    
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowToast(false)}
+                                    className="ms-auto -mx-1.5 -my-1.5 bg-white items-center justify-center shrink-0 text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
+                                    aria-label="Close"
+                                >
+                                    <span className="sr-only">Close</span>
+                                    <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        )}
+                        {/* {showModal && (
+                            <Modal 
+                                isShow={showModal}
+                                title="Edit Roadmap"
+                                onClose={() => setShowModal(false)}
+                            >
+                                <MultiStepsForm
+                                    onComplete={(data) => {
+                                        console.log("Final Form Submission:", data);
+                                        handlePrepareData(data);
+                                    }}
+                                    submitting={isSubmitting}
+                                />
+                            </Modal>
+                        )} */}
+                </div>
+
+                <div className="min-h-[calc(100vh-181px)] lg:min-h-[calc(100vh-145px)]">
+                    <div className="flex flex-col-reverse lg:grid lg:grid-cols-3 items-center gap-5 h-full rounded-3xl">
+                        <div className="col-span-2 p-5 rounded-2xl w-full h-full bg-white dark:bg-slate-800 relative">
+                            {sending ? (
+                                <Skeleton />
+                            ) : (
+                                showChart && (
+                                    <div>
+                                        <div className="mb-10">
+                                            <h2 className="text-xl font-bold dark:text-white mb-4">SQL Query</h2>
+                                            <SyntaxHighlighter
+                                                language="sql"
+                                                style={darkMode ? atomOneDark : atomOneLight}
+                                                className="rounded-xl text-sm"
+                                                customStyle={{ padding: "20px 30px" }}
+                                            >
+                                                {chatRs.sql_query}
+                                            </SyntaxHighlighter>
+                                        </div>
+
+                                        <RenderChart apiResponse={chatRs} />
+                                    </div>
+                                ) || (
+
+                                <div className="mb-10">
+                                    <h2 className="text-xl font-bold dark:text-white mb-4">Your Roadmap</h2>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.6, ease: "easeOut" }}
+                                    >
+                                        <LearningPath roadmapId={roomId} />
+                                    </motion.div>
+                                </div>
+                                )
+                            )}
+
+                            {/* {formData.status === "disconnected" && !sending && (
+                                <p className="text-black dark:text-white text-center mt-5">No data displayed.</p>
+                            )} */}
+
+                            {/*<Button*/}
+                            {/*    content="Save and Close"*/}
+                            {/*    handleEvent={handleSaveAndClose}*/}
+                            {/*    className="absolute left-6 bottom-6 align-middle select-none text-[15px] text-center transition-all py-2.5 px-3 rounded-lg bg-red-600 text-white shadow-md shadow-gray-900/10 hover:shadow-lg hover:shadow-gray-900/20 block gap-3"*/}
+                            {/*/>*/}
+                        </div>
+
+                        <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-800 w-full h-full">
+                            {chat?.ChatHistory?.map((msg, index) => (
+                                <Message key={index} message={msg.content} sender={msg.sender} avatar=""/>
+                            ))}
+
+                            {!sending && (<div className="font-bold text-xl mt-6 text-gray-600 dark:text-white">Learning Paths</div>)}
+                            <div className="py-2">
+                                <ol className="list-decimal ml-6 text-xl">
+                                    {!sending && courseList.map((course) => (
+                                        <div key={course.link} className="mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="inline-flex items-center">
+                                                    <label className="flex items-center cursor-pointer relative">
+                                                    <input
+                                                        id={`checkbox-${course.id}`}
+                                                        type="checkbox"
+                                                        checked={course.status === "finished"}
+                                                        onChange={() => handleCheckboxChange(course.id)}
+                                                        className="peer h-4 w-4 cursor-pointer transition-all appearance-none rounded-full bg-slate-100 shadow hover:shadow-md border border-slate-300 checked:bg-slate-800 checked:border-slate-800"
+                                                    />
+                                                    <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" stroke="currentColor" strokeWidth="1">
+                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                                        </svg>
+                                                    </span>
+                                                    </label>
+                                                </div>
+                                                <a
+                                                    href={course.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ textDecoration: "none" }}
+                                                    className="flex items-center gap-2 text-sm text-indigo-700 dark:text-indigo-300 hover:underline"
+                                                >
+                                                    <TypeAnimation
+                                                        key={course.status}
+                                                        sequence={[course.status === "finished" ? `${course.name} - Finished` : `${course.name}`]}
+                                                        speed={50}
+                                                        wrapper="span"
+                                                        cursor={false}
+                                                        style={{ display: "inline-block" }}
+                                                        className={`text-lg ${course.status === "finished" ? "text-gray-400 line-through" : "text-green-600"}`}
+                                                    />
+                                                </a>
+                                                </div>
+                                            <div className="ml-6">
+                                                <TypeAnimation
+                                                    sequence={[`Average time to finish the course: ${course.avg_time_to_finish} hours`]}
+                                                    speed={50}
+                                                    wrapper="span"
+                                                    cursor={false}
+                                                    style={{ display: "inline-block" }}
+                                                    className="text-base text-gray-600 dark:text-gray-400 ml-6"
+                                                />
+                                            </div>  
+                                        </div>
+                                    ))}
+                                </ol>
+                            </div>
+
+
+                            {sending && <Skeleton/>}
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    className="sticky bottom-6 mt-6 mx-auto w-full lg:w-[600px] shadow dark:shadow-gray-600 backdrop-blur-sm rounded-3xl">
+                    <div className="flex flex-row items-center rounded-3xl bg-white dark:bg-slate-800 px-5">
+                        <textarea
+                            className="flex w-full focus:outline-none py-3 bg-transparent text-black dark:text-white resize-none scrollbar-transparent"
+                            placeholder="Type your message here..."
+                            value={message} 
+                            onChange={handleInput}
+                            rows={1}
+                            style={{ maxHeight: "96px" }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                    setMessage("");
+                                }
+                            }}
+                        />
+
+                        <div className="flex flex-row gap-x-4 pl-4 items-center">
+                            <Button
+                                content={<MicrophoneIcon
+                                    className={listening ? "animate-pulse text-red-500" : ""} />}
+                                handleEvent={toggleListening}
+                                className="flex items-center justify-center text-dark dark:text-white hover:text-gray-600"
+                            />
+
+                            <Button
+                                content={sending ? <StopCircle/> : <SentIcon/>}
+                                disabled={!message || listening || sending}
+                                handleEvent={()=>{
+                                    handleSendMessage();
+                                    setMessage("");
+                                }}
+                                className="flex items-center justify-center text-dark dark:text-white hover:text-gray-600"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Layout>
+    );
+}
+
+export default Chat;
