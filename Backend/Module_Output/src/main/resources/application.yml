@@ -16,9 +16,9 @@ gemini:
 
 spring:
  datasource:
-  url: jdbc:postgresql://localhost:5432/rag_db
-  username: rag_user
-  password: rag_password
+  url: jdbc:postgresql://dxtdb.cf2m6ku2yplo.ap-southeast-2.rds.amazonaws.com:5432/dxtDB
+  username: postgres
+  password: dxtDB123
   driver-class-name: org.postgresql.Driver
 
  jpa:
