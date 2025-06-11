@@ -1,16 +1,18 @@
 // import { useFormDBContext } from "@/context/DBFromContext";
+import { useEffect, useCallback, useState } from "react";
 import { Button } from "@/components/commons";
 // import {useNavigate, useParams} from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 // import {headers} from "@/utils/auth";
 // import { URLS } from "@/services/url";
 import config from "@/config";
-import { courseNodes, detailRoadmaps } from "@/mock/data";
 import dayjs from "dayjs";
 import { useParams } from "react-router-dom";
 import { Progress } from "@/components/commons";
 import { PencilEditIcon } from "@/assets/icons";
 import Tooltip from "@/components/commons/Tooltip";
+import { mainApi } from "@/services/api";
+import { URLS } from "@/services/url";
 // import { Modal } from "@/components/commons";
 // import MultiStepsForm from "@/components/views/MultiStepsForm";
 import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
@@ -24,9 +26,29 @@ const ConnectedInfo =  () => {
     // const [showToast, setShowToast] = useState(false);
     // const { formData, setFormData } = useFormDBContext();
     // const [isSubmitting, setIsSubmitting] = useState(false);
+    const [roadmap, setRoadmap] = useState([]);
+    const [nodeList, setNodeList] = useState([]);
     const navigate = useNavigate();
 
-    const roadmap = detailRoadmaps.find(rm => rm.id === roomId);
+    const loadNodes = useCallback(async () => {
+        try {
+            const nodeListResponse = await mainApi.get(URLS.CHAT.SHOW_ROADMAP("u123"));
+            if (nodeListResponse.data) {
+                setRoadmap(nodeListResponse.data.filter(course => course.id === roomId)[0]);
+                setNodeList(nodeListResponse.data.filter(course => course.id === roomId)[0].courseNodes)
+            } else {
+                console.error("Received empty or invalid response data.");
+                // toast error
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+    useEffect(()=> {
+        loadNodes();
+    },[loadNodes])
+
     if (!roadmap) {
     return (
         <div className="p-4 text-red-500">
@@ -35,13 +57,13 @@ const ConnectedInfo =  () => {
     );
 }
 
-    const courses = courseNodes.filter(course => course.roadmapId === roomId);
+    const courses = nodeList.filter(course => course.roadmapId === roomId);
     const total = courses.length;
     const completed = courses.filter(node => node.status === "finished").length;
     const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
     const unfinishedCourses = courses.filter(node => node.status !== "finished");
-    const remainingTime = unfinishedCourses.reduce((acc, node) => acc + node.avg_time_to_finish, 0);
+    const remainingTime = unfinishedCourses.reduce((acc, node) => acc + node.avgTimeToFinish, 0);
 
     const today = dayjs();
     const dueDate = roadmap.due ? dayjs(roadmap.due) : null;
@@ -134,7 +156,6 @@ const ConnectedInfo =  () => {
                             <Button
                                 disabled={true}
                                 className="flex items-center justify-center mb-1 w-6 h-6 bg-slate-50 text-gray-500 dark:bg-slate-800 dark:text-white transition-all duration-300 hover:bg-gray-700 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white rounded-full" 
-                                handleEvent={console.log("In Dev")}
                                 content={<PencilEditIcon size={20} className="text-gray-700 dark:text-white"/>}
                             />
                         </Tooltip>

@@ -15,6 +15,10 @@ export const URLS = {
         SHOW_SKILLS: ((goalId) => `api/skills?goalId=${goalId}`),
         SEND_ROADMAP_REQ: "api/roadmap/create/manu",
         SEND_ROADMAP_REQ_AUTO: "api/roadmap/create/auto",
+        PERSONAL_INFORMATION: ((userId) => `api/user/${userId}`),
+        SHOW_ROADMAP: ((userId) => `api/roadmap/user/${userId}`),
+        SEND_NEW_CERT: "api/user/u123/certificates",
+        UPDATE_COURSE_NODE_STATUS: ((courseNodeId) => `api/nodes/${courseNodeId}/status`),
     },
 
     AUTH: {

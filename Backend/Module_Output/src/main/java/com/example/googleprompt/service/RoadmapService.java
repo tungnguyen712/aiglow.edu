@@ -29,6 +29,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 @Service
@@ -39,6 +40,7 @@ public class RoadmapService implements RoadmapServiceIf {
     private final UserRepository userRepository;
     private final CertificateRepository certificateRepository;
     private final PromptServiceIf promptService;
+    private final EmbeddingServiceIf embeddingService;
     private final ObjectMapper objectMapper;
     private final Map<String, RMResponse> roadmapStore = new ConcurrentHashMap<>();
 
@@ -47,24 +49,34 @@ public class RoadmapService implements RoadmapServiceIf {
                           RoadmapRepository roadmapRepository,
                           CourseNodeRepository courseNodeRepository,
                           UserRepository userRepository,
-                          CertificateRepository certificateRepository) {
+                          CertificateRepository certificateRepository,
+                          EmbeddingService embeddingService) {
         this.promptService = promptService;
         this.objectMapper = objectMapper;
         this.roadmapRepository = roadmapRepository;
         this.courseNodeRepository = courseNodeRepository;
         this.userRepository = userRepository;
         this.certificateRepository = certificateRepository;
+        this.embeddingService = embeddingService;
     }
 
     @Override
     public RMResponse generateRoadmap(ManuRMRequest request) {
         String generatedId = request.getUserId() + "-" + IdGenerator.generateShortId();
-        String prompt = buildPrompt(request, generatedId);
+        String roadmapSuffix = generatedId.substring(generatedId.indexOf("-") + 1);
+        List<String> nodeIds = IntStream.range(1, 9)
+                .mapToObj(i -> roadmapSuffix + "_n" + i)
+                .collect(Collectors.toList());
+        logger.info("Node Ids include: ", nodeIds);
+
+        List<String> contextList = embeddingService.searchSimilar(request.getGoal());
+        String context = String.join("\n", contextList);
+
+        String prompt = buildPrompt(request, generatedId, nodeIds, context);
         logger.info("Prompt sent to AI:\n{}", prompt);
 
         String aiResponse = promptService.generateTextFromPrompt(prompt);
         logger.info("Raw response from AI:\n{}", aiResponse);
-
         // Xử lý nếu AI bọc trong ```json ... ```
         String cleaned = aiResponse
                 .replaceAll("(?s)^```json\\s*", "")
@@ -75,13 +87,13 @@ public class RoadmapService implements RoadmapServiceIf {
             JsonNode rootNode = objectMapper.readTree(cleaned);
 
             // Nếu resources là object thay vì array → sửa lại
-            JsonNode resourcesNode = rootNode.get("resources");
-            if (resourcesNode != null && resourcesNode.isObject()) {
-                logger.warn("resources is object instead of array, converting...");
-                ArrayNode arrayNode = objectMapper.createArrayNode();
-                arrayNode.add(resourcesNode);
-                ((ObjectNode) rootNode).set("resources", arrayNode);
-            }
+//            JsonNode resourcesNode = rootNode.get("resources");
+//            if (resourcesNode != null && resourcesNode.isObject()) {
+//                logger.warn("resources is object instead of array, converting...");
+//                ArrayNode arrayNode = objectMapper.createArrayNode();
+//                arrayNode.add(resourcesNode);
+//                ((ObjectNode) rootNode).set("resources", arrayNode);
+//            }
 
             // Check một số trường quan trọng
             if (!rootNode.has("roadmap")) {
@@ -90,22 +102,30 @@ public class RoadmapService implements RoadmapServiceIf {
 
             ObjectNode roadmapNode = (ObjectNode) rootNode.get("roadmap");
             //tạm thời không cần
-            if (request.getPreviousRoadmapIds() != null && !request.getPreviousRoadmapIds().isEmpty()) {
-                ArrayNode previousIdsNode = objectMapper.createArrayNode();
-                request.getPreviousRoadmapIds().forEach(previousIdsNode::add);
-                roadmapNode.set("previousRoadmapIds", previousIdsNode);
+//            if (request.getPreviousRoadmapIds() != null && !request.getPreviousRoadmapIds().isEmpty()) {
+//                ArrayNode previousIdsNode = objectMapper.createArrayNode();
+//                request.getPreviousRoadmapIds().forEach(previousIdsNode::add);
+//                roadmapNode.set("previousRoadmapIds", previousIdsNode);
+//            }
+
+            roadmapNode.put("roadmapId", generatedId);
+            roadmapNode.put("userId", request.getUserId());
+            logger.info("Enforced roadmapId: {}", generatedId);
+
+            ArrayNode nodesArray = (ArrayNode) roadmapNode.get("nodes");
+            if (nodesArray != null) {
+                for (JsonNode node : nodesArray) {
+                    if (node instanceof ObjectNode objNode) {
+                        objNode.put("roadmapId", generatedId);
+                    }
+                }
             }
 
-            if (!roadmapNode.hasNonNull("roadmapId") || roadmapNode.get("roadmapId").asText().isEmpty()) {
-                roadmapNode.put("roadmapId", generatedId);
-                roadmapNode.put("userId", request.getUserId());
-                logger.info("Generated new roadmapId: {}", generatedId);
-            }
 
-            if (!rootNode.has("resources")) {
-                logger.warn("Lacking 'resources'");
-                ((ObjectNode) rootNode).putArray("resources");
-            }
+//            if (!rootNode.has("resources")) {
+//                logger.warn("Lacking 'resources'");
+//                ((ObjectNode) rootNode).putArray("resources");
+//            }
             if (!rootNode.has("advice")) {
                 logger.warn("Lacking 'advice'");
                 ((ObjectNode) rootNode).putArray("advice");
@@ -121,6 +141,8 @@ public class RoadmapService implements RoadmapServiceIf {
             List<CourseNodeDTO> courseNodes = roadmapResponse.getRoadmap().getNodes();
             roadmapResponse.setCourseNodes(courseNodes);
 
+            embeddingService.embedText(request.getGoal());
+
             roadmapStore.put(roadmapResponse.getRoadmap().getRoadmapId(), roadmapResponse);
             saveRoadmapAndNodesFlat(roadmapResponse, request.getUserId());
             return roadmapResponse;
@@ -133,7 +155,16 @@ public class RoadmapService implements RoadmapServiceIf {
 
     @Override
     public RMResponse generateRoadmapFromProfile(ProfileRMRequest request){
-        String prompt = buildPromptFromProfile(request);
+        String generatedId = request.getUserId() + "-" + IdGenerator.generateShortId();
+        String roadmapSuffix = generatedId.substring(generatedId.indexOf("-") + 1);
+        List<String> nodeIds = IntStream.range(1, 9)
+                .mapToObj(i -> roadmapSuffix + "_n" + i)
+                .collect(Collectors.toList());
+
+        List<String> contextList = embeddingService.searchSimilar(request.getGoal());
+        String context = String.join("\n", contextList);
+
+        String prompt = buildPromptFromProfile(request, nodeIds, context);
         logger.info("Prompt sent to AI:\n{}", prompt);
 
         String aiResponse = promptService.generateTextFromPrompt(prompt);
@@ -147,28 +178,40 @@ public class RoadmapService implements RoadmapServiceIf {
         try {
             JsonNode rootNode = objectMapper.readTree(cleaned);
 
-            JsonNode resourcesNode = rootNode.get("resources");
-            if (resourcesNode != null && resourcesNode.isObject()) {
-                logger.warn("resources is object instead of array, converting...");
-                ArrayNode arrayNode = objectMapper.createArrayNode();
-                arrayNode.add(resourcesNode);
-                ((ObjectNode) rootNode).set("resources", arrayNode);
-            }
+            //JsonNode resourcesNode = rootNode.get("resources");
+//            if (resourcesNode != null && resourcesNode.isObject()) {
+//                logger.warn("resources is object instead of array, converting...");
+//                ArrayNode arrayNode = objectMapper.createArrayNode();
+//                arrayNode.add(resourcesNode);
+//                ((ObjectNode) rootNode).set("resources", arrayNode);
+//            }
+
 
             if (!rootNode.has("roadmap")) {
                 throw new IllegalArgumentException("Lacking 'roadmap'");
             }
             ObjectNode roadmapNode = (ObjectNode) rootNode.get("roadmap");
+            roadmapNode.put("roadmapId", generatedId);
+            roadmapNode.put("userId", request.getUserId());
+            logger.info("Enforced roadmapId: {}", generatedId);
 
-            if (request.getPreviousRoadmapIds() != null && !request.getPreviousRoadmapIds().isEmpty()) {
-                ArrayNode previousIdsNode = objectMapper.createArrayNode();
-                request.getPreviousRoadmapIds().forEach(previousIdsNode::add);
-                roadmapNode.set("previousRoadmapIds", previousIdsNode);
-            }
+//            if (request.getPreviousRoadmapIds() != null && !request.getPreviousRoadmapIds().isEmpty()) {
+//                ArrayNode previousIdsNode = objectMapper.createArrayNode();
+//                request.getPreviousRoadmapIds().forEach(previousIdsNode::add);
+//                roadmapNode.set("previousRoadmapIds", previousIdsNode);
+//            }
 
-            if (!rootNode.has("resources")) {
-                logger.warn("Lacking 'resources'");
-                ((ObjectNode) rootNode).putArray("resources");
+//            if (!rootNode.has("resources")) {
+//                logger.warn("Lacking 'resources'");
+//                ((ObjectNode) rootNode).putArray("resources");
+//            }
+            ArrayNode nodesArray = (ArrayNode) roadmapNode.get("nodes");
+            if (nodesArray != null) {
+                for (JsonNode node : nodesArray) {
+                    if (node instanceof ObjectNode objNode) {
+                        objNode.put("roadmapId", generatedId);
+                    }
+                }
             }
             if (!rootNode.has("advice")) {
                 logger.warn("Lacking 'advice'");
@@ -182,6 +225,9 @@ public class RoadmapService implements RoadmapServiceIf {
 
             List<CourseNodeDTO> courseNodes = roadmapResponse.getRoadmap().getNodes();
             roadmapResponse.setCourseNodes(courseNodes);
+
+            embeddingService.embedText(request.getGoal());
+
             roadmapStore.put(roadmapResponse.getRoadmap().getRoadmapId(), roadmapResponse);
 
             saveRoadmapAndNodesFlat(roadmapResponse, request.getUserId());
@@ -193,7 +239,7 @@ public class RoadmapService implements RoadmapServiceIf {
         }
     }
 
-    private String buildPrompt(ManuRMRequest request, String roadmapId) {
+    private String buildPrompt(ManuRMRequest request, String roadmapId, List<String> nodeIds, String context) {
         String previousIds = (request.getPreviousRoadmapIds() == null || request.getPreviousRoadmapIds().isEmpty()) ?
                 "None" : String.join(", ", request.getPreviousRoadmapIds());
         return String.format("""
@@ -204,7 +250,7 @@ public class RoadmapService implements RoadmapServiceIf {
     - Each node is an object in the flat list, and the relationships between nodes are described using the field `"childIds"`.
     - Do NOT include skills already learned or listed in previous roadmap IDs.
     - All nodes must have:
-      - A unique ID ("id")
+      - You must use exactly these 8 pre-generated node IDs (in order): [%s]
       - Name of the skill
       - **Every node MUST have a valid, clickable course URL** in "link".
                               - **"name" is the name of the skills that you suggest user to learn,
@@ -228,7 +274,9 @@ public class RoadmapService implements RoadmapServiceIf {
     - Study hours per week: %.1f
     - Selected skills: [%s]
     - Roadmap name: %s
-    - Previous roadmap IDs (if any): %s
+    
+    Context (for references):
+                %s
 
     Return a JSON object strictly matching this format:
     {
@@ -245,7 +293,7 @@ public class RoadmapService implements RoadmapServiceIf {
             "name": "string",
             "link": "string",
             "status": "string",
-            "avg_time_to_finish": number,
+            "avgTimeToFinish": number,
             "roadmapId": "string",
             "children": "string"
           }
@@ -253,19 +301,21 @@ public class RoadmapService implements RoadmapServiceIf {
       },
       "advice": ["string"]
     }
-
     Ensure the output is valid JSON with no markdown, explanations, or surrounding text.
     """,
+                String.join(",", nodeIds),
                 request.getUserId(),
                 request.getGoal(),
                 request.getDeadline(),
                 request.getStudyHourPerWeek(),
                 request.getSelectedSkills(),
                 request.getRmName() != null ? request.getRmName() : "",
-                previousIds);
+                //String.join(", ", nodeIds)
+                context
+        );
     }
 
-    private String buildPromptFromProfile(ProfileRMRequest request) {
+    private String buildPromptFromProfile(ProfileRMRequest request, List<String> nodeIds, String context) {
         String previousIds = (request.getPreviousRoadmapIds() == null || request.getPreviousRoadmapIds().isEmpty())
                 ? "None"
                 : String.join(", ", request.getPreviousRoadmapIds());
@@ -301,6 +351,7 @@ Requirements:
 - Consider skills with progress less than 100%% as partially learned, so you may prioritize or suggest next steps to complete them.
 - All nodes must have:
   - A unique ID ("id")
+  - You must use exactly these 8 pre-generated node IDs (in order): [%s]
   - Name of the skill
   - **Every node MUST have a valid, clickable course URL** in "link".
   - **"name" is the name of the skills that you suggest user to learn,
@@ -323,9 +374,11 @@ Input:
 - Deadline: %s
 - Study hours per week: %.1f
 - Roadmap name: %s
-- Previous roadmap IDs (if any): %s
 - Existing roadmap (if any): %s
 - Certificate (if any): %s
+
+Context (for references):
+            %s
 
 Return a JSON object strictly matching this format:
 {
@@ -342,7 +395,7 @@ Return a JSON object strictly matching this format:
         "name": "string",
         "link": "string",
         "status": "string",
-        "avg_time_to_finish": number,
+        "avgTimeToFinish": number,
         "roadmapId": "string",
         "children": "string"
       }
@@ -353,14 +406,16 @@ Return a JSON object strictly matching this format:
 
 Ensure the output is valid JSON with no markdown, explanations, or surrounding text.
 """,
+                String.join(",", nodeIds),
                 request.getUserId(),
                 request.getGoal(),
                 deadlineStr,
                 request.getStudyHourPerWeek(),
                 request.getRmName() != null ? request.getRmName() : "",
-                previousIds,
                 existingRM,
-                certName
+                certName,
+                //String.join(",", nodeIds)
+                context
         );
 
     }
@@ -526,7 +581,8 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
 
         if (response == null || response.getRoadmap() == null) return;
 
-        String roadmapId = "rm_" + userId + "_" + UUID.randomUUID().toString().substring(0, 8);
+        String roadmapId = response.getRoadmap().getRoadmapId();
+
         RoadmapEntity roadmapEntity = mapToEntity(response.getRoadmap());
         roadmapEntity.setId(roadmapId);
         roadmapEntity.setUserId(userId);
@@ -536,34 +592,20 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
         if (nodes == null || nodes.isEmpty()) return;
 
         for (CourseNodeDTO dto : nodes) {
-            String oldNodeId = dto.getId();
-            String prefix = roadmapEntity.getId();
-            if (prefix.length() > 8) prefix = prefix.substring(0, 8);
-            String newNodeId = "cn_" + prefix + "_" + UUID.randomUUID().toString().substring(0, 8);
-            idMap.put(oldNodeId, newNodeId);
-        }
-
-        for (CourseNodeDTO dto : nodes) {
             CourseNodeEntity entity = new CourseNodeEntity();
-            String newNodeId = idMap.get(dto.getId());
-            entity.setId(newNodeId);
+            entity.setId(dto.getId());
             entity.setName(dto.getName());
             entity.setLink(dto.getLink());
             entity.setStatus(dto.getStatus());
             entity.setAvgTimeToFinish(dto.getAvgTimeToFinish());
-            /*for (String child : dto.getChildren()) {
-                System.out.println("List of child: " + child);
-            }*/
             if (dto.getChildren() == null || dto.getChildren().isEmpty()) {
                 entity.setChildIds("");
             } else {
-                //entity.setChildIds(String.join(",", dto.getChildren()));
-                String convertedChildren = Arrays.stream(dto.getChildren().split(","))
+                String cleanedChildren = Arrays.stream(dto.getChildren().split(","))
                         .map(String::trim)
-                        .map(idMap::get) // chuyển sang ID mới
-                        .filter(Objects::nonNull)
+                        .filter(s -> !s.isEmpty())
                         .collect(Collectors.joining(","));
-                entity.setChildIds(convertedChildren);
+                entity.setChildIds(cleanedChildren);
             }
             entity.setRoadmap(roadmapEntity);
             courseNodeRepository.save(entity);

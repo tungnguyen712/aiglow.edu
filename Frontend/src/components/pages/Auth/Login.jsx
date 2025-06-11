@@ -8,9 +8,10 @@ import { EyeIcon, EyeOffIcon, GoogleIcon } from "@/assets/icons";
 import { useGoogleLogin } from "@react-oauth/google";
 import { regexEmail } from "@/utils/regex";
 import { setAccessToken } from "@/utils/auth";
-// import { mainApi } from "@/services/api";
-// import { URLS } from "@/services/url";
+import { mainApi } from "@/services/api";
+import { URLS } from "@/services/url";
 import { FSoft } from "@/assets/images";
+import { toast } from "react-toastify";
 
 const Login = () => {
     const navigate = useNavigate();
@@ -65,25 +66,25 @@ const Login = () => {
         e.preventDefault();
         if (validateForm()) {
             setSubmitting(true)
-            setAccessToken("accessToken");
-            navigate(config.routes.HOME);
-            // try {
-            //     const loginRequest = await mainApi.post(URLS.AUTH.LOGIN, formData);
+            // setAccessToken("accessToken");
+            try {
+                const loginRequest = await mainApi.get(URLS.CHAT.PERSONAL_INFORMATION("u123"));
 
-            //     if (loginRequest.status === 200) {
-            //         const token = loginRequest.data.accessToken;
-            //         setAccessToken(token);
-            //         navigate(config.routes.HOME);
-            //     }
-            // } catch (error) {
-            //     console.error(error);
-            //     setFormErrors({
-            //         email: "Email or password incorrect.",
-            //         password: "Email or password incorrect.",
-            //     });
-            // } finally {
-            //     setSubmitting(false);
-            // }
+                if (loginRequest.status === 200) {
+                    const token = loginRequest.data;
+                    setAccessToken(token);
+                    navigate(config.routes.HOME);
+                }
+            } catch (error) {
+                console.error(error);
+                toast.error("Somethings went wrong.");
+                setFormErrors({
+                    email: "Email or password incorrect.",
+                    password: "Email or password incorrect.",
+                });
+            } finally {
+                setSubmitting(false);
+            }
         }
     };
 

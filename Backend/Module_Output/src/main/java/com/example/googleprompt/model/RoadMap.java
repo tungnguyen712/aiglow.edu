@@ -1,6 +1,7 @@
 package com.example.googleprompt.model;
 
 import com.example.googleprompt.model.dto.CourseNodeDTO;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,5 +23,6 @@ public class RoadMap {
     private List<String> selectedSkills;
     @JsonProperty("nodes")
     private List<CourseNodeDTO> nodes;
+    @JsonIgnore
     private List<String> previousRoadmapIds;
 }

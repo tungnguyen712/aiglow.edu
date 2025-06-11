@@ -9,20 +9,21 @@ import { DuplicateIcon } from "@/assets/icons";
 import { DeleteIcon } from "@/assets/icons";
 // import Duplicate from "@/assets/images/duplicate.png";
 import { Progress } from "@/components/commons";
-import { courseNodes } from "@/mock/data";
+// import { courseNodes } from "@/mock/data";
 import dayjs from "dayjs";
 import { Button } from "@/components/commons";
 
 
 const RoadmapCard = React.memo(({ item, handleEvent = () => {} }) => {
 
-    const courses = courseNodes.filter(course => course.roadmapId === item.id);
+    const courses = item.courseNodes;
     const total = courses.length;
+
     const completed = courses.filter(node => node.status === "finished").length;
     const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
     const unfinishedCourses = courses.filter(node => node.status !== "finished");
-    const remainingTime = unfinishedCourses.reduce((acc, node) => acc + node.avg_time_to_finish, 0);
+    const remainingTime = unfinishedCourses.reduce((acc, node) => acc + node.avgTimeToFinish, 0);
 
     const today = dayjs();
     const dueDate = item.due ? dayjs(item.due) : null;
@@ -150,6 +151,16 @@ RoadmapCard.propTypes = {
         name: PropTypes.string.isRequired,
         goal: PropTypes.string,
         due: PropTypes.string,
+        courseNodes: PropTypes.arrayOf(
+            PropTypes.shape({
+                id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+                name: PropTypes.string.isRequired,
+                link: PropTypes.string,
+                status: PropTypes.string,
+                avgTimeToFinish: PropTypes.number,
+                childIds: PropTypes.string,
+            })
+        )
     }).isRequired,
     handleEvent: PropTypes.func
 };

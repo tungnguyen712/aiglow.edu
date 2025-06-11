@@ -7,11 +7,18 @@ gemini:
  endpoint: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
  model-name: models/gemini-2.0-flash
 
+#spring:
+# datasource:
+#  url: jdbc:postgresql://localhost:5432/DXTExample
+#  username: postgres
+#  password: lytruongtho123
+#  driver-class-name: org.postgresql.Driver
+
 spring:
  datasource:
-  url: jdbc:postgresql://localhost:5432/DXTExample
-  username: postgres
-  password: lytruongtho123
+  url: jdbc:postgresql://localhost:5432/rag_db
+  username: rag_user
+  password: rag_password
   driver-class-name: org.postgresql.Driver
 
  jpa:
@@ -20,3 +27,8 @@ spring:
    ddl-auto: update
   show-sql: true
 
+embedding:
+ base-url: http://localhost:8000
+ endpoints:
+  search: /search
+  embed: /embed

@@ -17,7 +17,7 @@ public class CourseNodeDTO {
     @JsonProperty("link")
     private String link;
     private String status;  // Ví dụ: "finished" hoặc "unfinished"
-    @JsonProperty("avg_time_to_finish")
+    @JsonProperty("avgTimeToFinish")
     private int avgTimeToFinish;
     private String roadmapId;
     private String children;

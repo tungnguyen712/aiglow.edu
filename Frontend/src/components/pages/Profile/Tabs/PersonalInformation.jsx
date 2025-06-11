@@ -1,19 +1,17 @@
 import { Image } from "@/components/commons";
 // import { ComingSoon } from "@/components/commons";
-import { someProfiles } from "@/mock/data";
 // import {useEffect, useState} from "react";
-import {useEffect, useState} from "react";
+import {useEffect} from "react";
 // import { mainApi } from "@/services/api";
 // import { URLS } from "@/services/url";
-// import { getAccessToken } from "@/utils/auth";
+import { getAccessToken } from "@/utils/auth";
 
 const PersonalInformation = () => {
     // const [info, setInfo] = useState({});
 
     // const token = getAccessToken();
 
-    const [selectedUserId, setSelectedUserId] = useState("u001");
-    const userProfile = someProfiles.find(profile => profile.id === selectedUserId);
+    const userProfile = JSON.parse(getAccessToken());
 
     const loadInfo = async () => {
         try {
@@ -26,7 +24,6 @@ const PersonalInformation = () => {
 
     useEffect(() => {
         loadInfo();
-        setSelectedUserId("u001");
     }, [])
 
     return (
@@ -38,7 +35,7 @@ const PersonalInformation = () => {
                 </div>
 
                 <div>
-                    <h2 className="text-xl font-semibold text-black dark:text-white">DXTBidMasters</h2>
+                    <h2 className="text-xl font-semibold text-black dark:text-white">{userProfile.firstName}</h2>
                     <span className="block mt-2.5 text-[12px] text-gray-600 dark:text-gray-400">Sale Team</span>
                     <span className="block mt-2.5 text-[12px] text-gray-600 dark:text-gray-400">2nd Floor - PVB</span>
                 </div>
@@ -86,7 +83,7 @@ const PersonalInformation = () => {
                         <span className="ml-2 flex-grow h-[1px] bg-gray-200"></span>
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-                        {userProfile?.certs.map((cert, idx) => (
+                        {userProfile?.certs?.map((cert, idx) => (
                             <div
                                 key={idx}
                                 className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow p-5 flex flex-col gap-2"
@@ -104,7 +101,7 @@ const PersonalInformation = () => {
                                     <span className="font-medium">Issue Date:</span> {cert.issueDate}
                                 </div>
                                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                                    <span className="font-medium">Credential ID:</span> {cert.credentialID}
+                                    <span className="font-medium">Credential ID:</span> {cert.credentialId}
                                 </div>
                             </div>
                         ))}

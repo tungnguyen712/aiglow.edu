@@ -2,13 +2,11 @@
 import { ReactFlow, Controls, Background, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import PropTypes from "prop-types";
-import { courseNodes } from "@/mock/data";
 import { getLayoutedElements } from "@/utils/nodesLayout";
 
-const LearningPath = ({ roadmapId }) => {
-  const courses = courseNodes.filter(c => c.roadmapId === roadmapId);
+const LearningPath = ({ courseList }) => {
 
-  const rawNodes = courses.map((course, index) => ({
+  const rawNodes = courseList?.map((course, index) => ({
     id: course.id,
     type: "default",
     data: { label: course.name },
@@ -21,15 +19,16 @@ const LearningPath = ({ roadmapId }) => {
     },
   }));
 
-  const rawEdges = courses.flatMap(course =>
-    course.childs.map(childId => ({
+  const rawEdges = courseList?.flatMap(course => {
+    const childIdsArray = course?.childIds?.split(',').map(id => id.trim()).filter(Boolean);
+    return childIdsArray?.map(childId => ({
       id: `${course.id}-${childId}`,
       source: course.id,
       target: childId,
       animated: true,
       style: { stroke: "#3b82f6" },
-    }))
-  );
+    })) || [];
+  });
 
   const { nodes: initialNodes, edges: initialEdges } = getLayoutedElements(rawNodes, rawEdges);
 
@@ -67,7 +66,16 @@ const LearningPath = ({ roadmapId }) => {
 };
 
 LearningPath.propTypes = {
-    roadmapId: PropTypes.string.isRequired,
+    courseList: PropTypes.arrayOf(
+        PropTypes.shape({
+            id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+            name: PropTypes.string.isRequired,
+            link: PropTypes.string,
+            status: PropTypes.string,
+            avgTimeToFinish: PropTypes.number,
+            childIds: PropTypes.string,
+        })
+    )
 };
 
 export default LearningPath;

@@ -1,8 +1,8 @@
 // import { useCallback, useEffect, useState } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-// import { mainApi } from "@/services/api";
-// import { URLS } from "@/services/url";
+import { mainApi } from "@/services/api";
+import { URLS } from "@/services/url";
 // import { getAccessToken, headers } from "@/utils/auth";
 // import { getAccessToken } from "@/utils/auth";
 import { useTheme } from "@/context/ThemeContext";
@@ -20,11 +20,11 @@ import RenderChart from "@/components/views/RenderChart";
 // import { MockImage, ImageNotFound } from "@/assets/images";
 import { motion } from "framer-motion";
 import { TypeAnimation } from 'react-type-animation';
-import { courseNodes } from "@/mock/data";
+// import { courseNodes } from "@/mock/data";
 import LearningPath from "@/components/views/LearningPath"
-// import { p } from "framer-motion/client";
 // import { Modal } from "@/components/commons";
 import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
+import { toast } from "react-toastify";
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = SpeechRecognition ? new SpeechRecognition() : null;
@@ -38,6 +38,7 @@ function Chat() {
     const [listening, setListening] = useState(false);
     const [chatRs, setChatRs] = useState({});
     const [sending, setSending] = useState(false);
+    const [reloadAfterStatusChange, setReloadAfterStatusChange] = useState(false);
     // const [chat, setChat] = useState([]);
     const chat = null;
     const [showChart, setShowChart] = useState(false);
@@ -47,7 +48,7 @@ function Chat() {
     const { formState } = useMultiStepsFormContext();
     // const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const [courseList, setCourseList] = useState(courseNodes.filter(course => course.roadmapId === roomId));
+    const [courseList, setCourseList] = useState([]);
     // const { link, setLink } = useState([]);
 
     // const [mockMessage, setMockMessage] = useState("Try Typing Something!");
@@ -59,6 +60,29 @@ function Chat() {
         e.target.style.height = `${Math.min(e.target.scrollHeight, 96)}px`;
         setMessage(e.target.value);
     };
+
+    const loadNodes = useCallback(async () => {
+        try {
+            setSending(true);
+            const nodeListResponse = await mainApi.get(URLS.CHAT.SHOW_ROADMAP("u123"));
+            if (nodeListResponse.data) {
+                const courses = nodeListResponse.data.filter(course => course.id === roomId);
+                console.log("Response data:", courses[0].courseNodes);
+                setCourseList(courses[0].courseNodes);
+            } else {
+                console.error("Received empty or invalid response data.");
+                // toast error
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setSending(false);
+        }
+    }, [roomId]);
+
+    useEffect(()=> {
+        loadNodes();
+    },[loadNodes])
 
     // const handlePrepareData = async (data) => {
     //     setIsSubmitting(true);
@@ -102,13 +126,30 @@ function Chat() {
     //     setShowModal(true);
     // };
 
-    const handleCheckboxChange = (courseId) => {
+    const handleCheckboxChange = async (courseId) => {
         console.log("Checkbox clicked for course ID:", courseId);
-        const updatedCourseList = courseList.map(course =>
-            course.id === courseId
-            ? { ...course, status: course.status === "finished" ? "unfinished" : "finished" }
-            : course
-        );
+        let newStatus = "";
+        const updatedCourseList = courseList.map(course => {
+            if (course.id === courseId) {
+                newStatus = course.status === "finished" ? "unfinished" : "finished";
+                
+                return { ...course, status: newStatus };
+            }
+            return course;
+        });
+        try {
+            setReloadAfterStatusChange(true);
+            await mainApi.post(URLS.CHAT.UPDATE_COURSE_NODE_STATUS(courseId), 
+                { status: newStatus }, 
+                {
+                    headers: { "Content-Type": "application/json" }
+                }
+            );
+        } catch (error) {
+            toast.error(error);
+        } finally {
+            setReloadAfterStatusChange(false);
+        }
         setCourseList(updatedCourseList);
     }
 
@@ -335,7 +376,7 @@ function Chat() {
                 <div className="min-h-[calc(100vh-181px)] lg:min-h-[calc(100vh-145px)]">
                     <div className="flex flex-col-reverse lg:grid lg:grid-cols-3 items-center gap-5 h-full rounded-3xl">
                         <div className="col-span-2 p-5 rounded-2xl w-full h-full bg-white dark:bg-slate-800 relative">
-                            {sending ? (
+                            {(sending || reloadAfterStatusChange) ? (
                                 <Skeleton />
                             ) : (
                                 showChart && (
@@ -363,7 +404,7 @@ function Chat() {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.6, ease: "easeOut" }}
                                     >
-                                        <LearningPath roadmapId={roomId} />
+                                        <LearningPath courseList={courseList} />
                                     </motion.div>
                                 </div>
                                 )
@@ -388,7 +429,7 @@ function Chat() {
                             {!sending && (<div className="font-bold text-xl mt-6 text-gray-600 dark:text-white">Learning Paths</div>)}
                             <div className="py-2">
                                 <ol className="list-decimal ml-6 text-xl">
-                                    {!sending && courseList.map((course) => (
+                                    {!sending && courseList?.map((course) => (
                                         <div key={course.link} className="mb-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="inline-flex items-center">
@@ -416,7 +457,7 @@ function Chat() {
                                                 >
                                                     <TypeAnimation
                                                         key={course.status}
-                                                        sequence={[course.status === "finished" ? `${course.name} - Finished` : `${course.name}`]}
+                                                        sequence={[course.name]}
                                                         speed={50}
                                                         wrapper="span"
                                                         cursor={false}
@@ -427,7 +468,7 @@ function Chat() {
                                                 </div>
                                             <div className="ml-6">
                                                 <TypeAnimation
-                                                    sequence={[`Average time to finish the course: ${course.avg_time_to_finish} hours`]}
+                                                    sequence={[`Average time to finish the course: ${course.avgTimeToFinish} hours`]}
                                                     speed={50}
                                                     wrapper="span"
                                                     cursor={false}

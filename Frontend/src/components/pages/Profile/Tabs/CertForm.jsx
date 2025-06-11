@@ -28,7 +28,7 @@ const CertForm = ({ onComplete, submitting }) => {
     }
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            setCertificateFile(Array.from(e.target.files));
+            setCertificateFile(null);
         }
     }
 
@@ -64,7 +64,7 @@ const CertForm = ({ onComplete, submitting }) => {
     };
 
     const validateStep3 = () => {
-        if (certificateFile.length === 0) {
+        if (certificateFile?.length === 0) {
             setCertificateFileError("Please upload at least one certificate file.");
             return false;
         }
@@ -387,7 +387,7 @@ const CertForm = ({ onComplete, submitting }) => {
                                             <button
                                                 type="button"
                                                 onClick={() =>
-                                                    setCertificateFile((prev) => prev.filter((_, i) => i !== idx))
+                                                    setCertificateFile(null)
                                                 }
                                                 className="ml-auto text-black hover:text-red-600"
                                                 >  
@@ -403,12 +403,16 @@ const CertForm = ({ onComplete, submitting }) => {
                             type="button"
                             content="Back"
                             handleEvent={() => setStep(2)}
+                            isSubmitting={submitting}
+                            disabled={submitting}
                             className="transition delay-50 duration-200 ease-in-out w-full py-2.5 bg-gray-900 text-gray-300 rounded-lg shadow-md hover:bg-black"
                             />
                             <Button
                                 type="submit"
                                 content="Submit"
                                 handleEvent={handleFinalSubmit}
+                                isSubmitting={submitting}
+                                disabled={submitting}
                                 // isSubmitting={submitting}
                                 // disabled={submitting || !validateStep3()}
                                 className="transition delay-50 duration-200 ease-in-out w-full py-2.5 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700"

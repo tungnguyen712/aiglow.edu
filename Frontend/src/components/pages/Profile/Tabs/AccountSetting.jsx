@@ -1,24 +1,30 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 
 import { Button, Input, Image, ComingSoon } from "@/components/commons";
 import { ImageIcon } from "@/assets/icons";
 import { Modal } from "@/components/commons";
 import CertForm from "./CertForm";
 import { useCertificateContext } from "@/context/CertificateContext";
-import { certificate, someProfiles } from "@/mock/data";
+import { certificate } from "@/mock/data";
 import edx from "@/assets/images/edx.svg";
 import coursera from "@/assets/images/coursera.svg";
 import udemy from "@/assets/images/udemy.svg";
 import { useNavigate } from "react-router-dom";
 import linkedin from "@/assets/images/linkedin.svg";
+import { getAccessToken } from "@/utils/auth";
+import { mainApi } from "@/services/api";
+import { URLS } from "@/services/url";
+import { toast } from "react-toastify";
+import { setAccessToken } from "@/utils/auth";
 
 function AccountSetting() {
     const navigate = useNavigate();
     const inputRef = useRef();
     const [avatarFile, setAvatarFile] = useState(null);
 
-    const [selectedUserId, setSelectedUserId] = useState("u001");
-    const userProfile = someProfiles.find(profile => profile.id === selectedUserId);
+    // const [selectedUserId, setSelectedUserId] = useState("u123");
+    // const userProfile = someProfiles.find(profile => profile.id === selectedUserId);
+    const userProfile = JSON.parse(getAccessToken());
 
     const development = false;
 
@@ -32,6 +38,59 @@ function AccountSetting() {
             setAvatarFile(URL.createObjectURL(file));
         }
     }
+
+    const handleSetNewCookie = async () => {
+        try {
+            const loginRequest = await mainApi.get(URLS.CHAT.PERSONAL_INFORMATION("u123"));
+
+            if (loginRequest.status === 200) {
+                const token = loginRequest.data;
+                setAccessToken(token);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Somethings went wrong.");
+        }
+    };
+
+    const handleNewCert = async (data) => {
+        setIsSubmitting(true);
+        try {
+            const payload = {
+                name: data.name?.trim(),
+                issuer: data.issuer?.trim(),
+                issueDate: data.issueDate,
+                credentialId: data.credentialID,
+                category: data.category,
+                url: "https://google.com",
+                fileUrl: "https://google.com",
+            };
+
+            setFormState({ data: payload });
+            console.log("New Cert Payload: ", payload);
+
+            const certResponse = await mainApi.post(URLS.CHAT.SEND_NEW_CERT, payload, {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+            if (certResponse.data) {
+                console.log("Response data:", certResponse.data);
+                await handleSetNewCookie();
+                window.location.reload();
+            } else {
+                console.error("Received empty or invalid response data.");
+                toast.error("Somethings went wrong.");
+            }
+            
+        } catch (e) {
+            console.error("Error preparing data:", e);
+        } finally {
+            setIsSubmitting(false);
+            setShowModal(false);
+        }
+    };
+
     const [showModal, setShowModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { setFormState } = useCertificateContext();
@@ -43,9 +102,9 @@ function AccountSetting() {
         setConnectedCerts(prev => [...prev, ...newCerts]);
     };
 
-    useEffect(()=> {
-        setSelectedUserId("u001")
-    },[])
+    // useEffect(()=> {
+    //     setSelectedUserId("u123")
+    // },[])
 
     return (
         <div
@@ -96,7 +155,7 @@ function AccountSetting() {
                             type="text"
                             name="first_name"
                             placeholder=""
-                            value={"John"}
+                            value={userProfile.firstName}
                             onChange={() => {
                             }}
                             labelText="First Name"
@@ -110,7 +169,7 @@ function AccountSetting() {
                             type="text"
                             name="last_name"
                             placeholder=""
-                            value={"Hancock"}
+                            value={userProfile.lastName}
                             onChange={() => {
                             }}
                             labelText="Last Name"
@@ -178,10 +237,9 @@ function AccountSetting() {
                     <CertForm
                         key={showModal ? "open" : "close"}
                         onComplete={(data) => {
-                            setIsSubmitting(true);
-                            setFormState(data);
-                            setShowModal(false);
-                            setIsSubmitting(false);
+                            console.log("New Cert Data: ", data);
+                            setFormState(data);                            
+                            handleNewCert(data);
                             navigate(`/profile`);
                         }}
                         submitting={isSubmitting}
@@ -189,7 +247,7 @@ function AccountSetting() {
                 </Modal>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-                    {userProfile?.certs.map((cert, idx) => (
+                    {userProfile?.certs?.map((cert, idx) => (
                         <div
                             key={idx}
                             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow p-5 flex flex-col gap-2"
@@ -207,7 +265,7 @@ function AccountSetting() {
                                 <span className="font-medium">Issue Date:</span> {cert.issueDate}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-300">
-                                <span className="font-medium">Credential ID:</span> {cert.credentialID}
+                                <span className="font-medium">Credential ID:</span> {cert.credentialId}
                             </div>
                         </div>
                     ))}

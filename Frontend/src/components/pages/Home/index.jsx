@@ -13,13 +13,17 @@ import { Modal } from "@/components/commons";
 import { mainApi } from "@/services/api";
 import { URLS } from "@/services/url";
 // import { getDecodedToken, headers } from "@/utils/auth";
-import { getDecodedToken } from "@/utils/auth";
+// import { getDecodedToken } from "@/utils/auth";
+// import { getAccessToken } from "@/utils/auth";
 import { useNavigate } from "react-router-dom";
 import { useFormDBContext } from "@/context/DBFromContext";
 import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
-import { roadmaps, detailRoadmaps } from "@/mock/data";
+import { roadmaps } from "@/mock/data";
+import dayjs from "dayjs";
+import { getAccessToken } from "@/utils/auth";
 
 function Dashboard() {
+    const userProfile = JSON.parse(getAccessToken());
     const navigate = useNavigate();
     const { setFormData } = useFormDBContext();
     const [query, setQuery] = useState("");
@@ -31,11 +35,13 @@ function Dashboard() {
     const { setFormState } = useMultiStepsFormContext();
     // const [isPendingNavigation, setIsPendingNavigation] = useState(false);
 
-    const [selectedUserId, setSelectedUserId] = useState("u001");
-    const userRoadmaps = detailRoadmaps.filter(roadmap => roadmap.userId === selectedUserId);
+    const [selectedUserId, setSelectedUserId] = useState("u123");
+    const [userRoadmaps, setUserRoadmaps] = useState([]);
     
-    const decodeToken = getDecodedToken();
-    const userId = decodeToken?.userId;
+    // const decodeToken = getDecodedToken();
+    
+
+    // const userId = decodeToken?.userId;
 
     // const loadRooms = useCallback(async () => {
     //     try {
@@ -49,20 +55,28 @@ function Dashboard() {
     //     }
     // },[userId]);
 
-    const loadRoadmaps = useCallback(() => {
+    const loadRoadmaps = useCallback(async () => {
         try {
             setLoading(true);
+            const rmListResponse = await mainApi.get(URLS.CHAT.SHOW_ROADMAP(selectedUserId));
+            if (rmListResponse.data) {
+                console.log("Response data:", rmListResponse.data);
+                setUserRoadmaps(rmListResponse.data);
+            } else {
+                console.error("Received empty or invalid response data.");
+                // toast error
+            }
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedUserId]);
 
     useEffect(()=> {
         // loadRooms();
         loadRoadmaps();
-    },[loadRoadmaps, userId])
+    },[loadRoadmaps])
 
     // useEffect(() => {
     //     if (isPendingNavigation && formState.data) {
@@ -72,7 +86,7 @@ function Dashboard() {
     // }, [formState, isPendingNavigation, navigate, newRoadmapId]);
 
     useEffect(()=> {
-        setSelectedUserId("u001")
+        setSelectedUserId("u123")
     },[])
 
     // Pagination
@@ -125,14 +139,51 @@ function Dashboard() {
     // };
 
     const handlePrepareData = async (data) => {
-        // setIsPendingNavigation(true);
         setIsSubmitting(true);
         try {
-            // await mainApi.post(URLS.CHAT.PREPARE_DATA, data, {headers});
             let roadmapResponse;
             setFormState({ data });
+            console.log("Integrating: ", data);
             if (data.knowledgeSource === "profile") {
-                roadmapResponse = await mainApi.post(URLS.CHAT.SEND_ROADMAP_REQ_AUTO, data, {headers: {
+                let existingRoadmapArr = [];
+                userRoadmaps.forEach((roadmap) => {
+                    const courses = roadmap.courseNodes;
+                    const total = courses.length;
+                
+                    const completed = courses.filter(node => node.status === "finished").length;
+                    const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+                
+                    const unfinishedCourses = courses.filter(node => node.status !== "finished");
+                    const remainingTime = unfinishedCourses.reduce((acc, node) => acc + node.avgTimeToFinish, 0);
+                
+                    const today = dayjs();
+                    const dueDate = roadmap.due ? dayjs(roadmap.due) : null;
+                    const daysLeft = dueDate ? dueDate.diff(today, "day") : Infinity;
+                
+                    const maxDailyWorkload = 10;
+                    const maxAvailableTime = daysLeft * maxDailyWorkload;
+                
+                    let status = "on-track";
+                    if (progress === 100) {
+                        status = "finished";
+                    } else if (dueDate && remainingTime > maxAvailableTime) {
+                        status = "behind";
+                    }
+
+                    existingRoadmapArr.push({ name: roadmap.name, progress: progress, status: status });
+                });
+                let certNameArr = userProfile?.certs?.map(cert => cert.name) || [];
+                const payload = {
+                    userId: selectedUserId,
+                    goal: data.goal?.trim(),
+                    deadline: data.deadline,
+                    rmName: data.rmName,
+                    studyHourPerWeek: data.studyHourPerWeek,
+                    existingRoadmap: existingRoadmapArr,
+                    certName: certNameArr,
+                };
+                console.log("Final Payload Profile: ", payload);
+                roadmapResponse = await mainApi.post(URLS.CHAT.SEND_ROADMAP_REQ_AUTO, payload, {headers: {
                         "Content-Type": "application/json"
                 }});
             } else {

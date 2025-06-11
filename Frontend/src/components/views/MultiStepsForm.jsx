@@ -151,7 +151,7 @@ const MultiStepsForm = ({ onComplete, submitting }) => {
         console.log("Generate from: ", source);
 
         onComplete({
-            userId: "u001",
+            userId: "u123",
             goal: goal.trim(),
             deadline,
             rmName: customName,
@@ -347,7 +347,7 @@ const MultiStepsForm = ({ onComplete, submitting }) => {
                                 onClick={() =>{
                                     setAssessMode("profile");
                                     sendGoalGenSkills({
-                                        userId: "user1",
+                                        userId: "u123",
                                         goal: goal
                                     });
                                     setStep(4);
@@ -363,7 +363,7 @@ const MultiStepsForm = ({ onComplete, submitting }) => {
                                     setAssessMode("manual");
                                     setStep(4);
                                     sendGoalGenSkills({
-                                        userId: "user1",
+                                        userId: "u123",
                                         goal: goal
                                     });
                                 }
