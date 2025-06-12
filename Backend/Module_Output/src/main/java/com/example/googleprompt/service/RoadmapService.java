@@ -19,6 +19,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import jakarta.transaction.Transactional;
 import org.checkerframework.checker.units.qual.s;
 import org.slf4j.Logger;
@@ -609,6 +611,25 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
             }
             entity.setRoadmap(roadmapEntity);
             courseNodeRepository.save(entity);
+        }
+    }
+
+    public String buildNormalPrompt(String text, String id){
+        RoadmapEntity rm = roadmapRepository.findById(id).orElseThrow(() -> new RuntimeException("Roadmap not found"));
+        String training = "Analyze the request text" +
+                "1.If the request is ask to modify the roadmap, here is the current roadmap" +
+                rm.toString() +
+                ", analyze and modify the data and give me back in correct format so I can convert back to object from your text response, " +
+                "keep the Id \n" +
+                "2.If the request is normal question, just answer me in text";
+        String aiResponse = promptService.generateTextFromPrompt(text + "\n" + training);
+        Gson gson = new Gson();
+        try {
+            rm = gson.fromJson(aiResponse, rm.getClass());
+            roadmapRepository.save(rm);
+            return "Update roadmap successfully"
+        } catch (JsonSyntaxException e) {
+            return aiResponse;
         }
     }
 }

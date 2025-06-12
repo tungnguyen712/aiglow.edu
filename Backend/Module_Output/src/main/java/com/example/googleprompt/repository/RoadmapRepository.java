@@ -12,4 +12,7 @@ import java.util.List;
 public interface RoadmapRepository extends JpaRepository<RoadmapEntity, String> {
     @Query("SELECT r FROM RoadmapEntity r WHERE r.userId = :userId")
     List<RoadmapEntity> getAllByUserId(@Param("userId") String userId);
+
+    @Query("SELECT r from RoadmapEntity r where r.id = :id")
+    RoadmapEntity getById(@Param("id") String id);
 }
