@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from "react";
+import { Fragment } from "react";
 import { Link } from "react-router-dom";
 
 import config from "@/config";
@@ -14,11 +14,6 @@ const SidebarConnectDB = () => {
     const { darkMode, setDarkMode } = useTheme();
     const { isOpen, toggleSidebar } = useSidebar();
     const { formState } = useMultiStepsFormContext();
-
-    useEffect(() => {
-        console.log("Mounted formState:", formState);
-        console.log("Mounted formState:", formState?.data?.status);
-    }, [formState]);
 
     return (
         <Fragment>

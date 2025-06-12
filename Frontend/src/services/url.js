@@ -19,6 +19,8 @@ export const URLS = {
         SHOW_ROADMAP: ((userId) => `api/roadmap/user/${userId}`),
         SEND_NEW_CERT: "api/user/u123/certificates",
         UPDATE_COURSE_NODE_STATUS: ((courseNodeId) => `api/nodes/${courseNodeId}/status`),
+        DELETE_ROADMAP: ((roadmapId) => `api/roadmap/${roadmapId}/delete`),
+        SEND_CHATBOT_MESSAGE: "api/chat",
     },
 
     AUTH: {

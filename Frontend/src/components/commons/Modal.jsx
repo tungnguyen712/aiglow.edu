@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 function Modal({
   isShow = false,
   submitting = false,
-  title,
+  title = null,
   children,
   onClose,
   handleEvent,
@@ -62,7 +62,7 @@ function Modal({
 
 Modal.propTypes = {
   isShow: PropTypes.bool.isRequired,
-  title: PropTypes.string.isRequired,
+  title: PropTypes.string,
   children: PropTypes.node.isRequired,
   onClose: PropTypes.func.isRequired,
   submitting: PropTypes.bool,
