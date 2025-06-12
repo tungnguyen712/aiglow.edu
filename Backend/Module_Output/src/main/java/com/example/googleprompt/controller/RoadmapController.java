@@ -2,6 +2,7 @@ package com.example.googleprompt.controller;
 
 import com.example.googleprompt.entity.RoadmapEntity;
 import com.example.googleprompt.model.ManuRMRequest;
+import com.example.googleprompt.model.NormalChat;
 import com.example.googleprompt.model.ProfileRMRequest;
 import com.example.googleprompt.model.RMResponse;
 import com.example.googleprompt.model.dto.*;
@@ -97,6 +98,11 @@ public class RoadmapController {
         } catch (RuntimeException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
+    }
+
+    @PostMapping("/chat")
+    public ResponseEntity<String> getRoadmapsByUser(@RequestBody NormalChat request) {
+        return ResponseEntity.ok(roadmapService.buildNormalPrompt(request.getText(), request.getRoadmap_id()));
     }
 }
 
