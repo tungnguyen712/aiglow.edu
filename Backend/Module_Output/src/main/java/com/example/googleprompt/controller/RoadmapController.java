@@ -104,5 +104,16 @@ public class RoadmapController {
     public ResponseEntity<String> getRoadmapsByUser(@RequestBody NormalChat request) {
         return ResponseEntity.ok(roadmapService.buildNormalPrompt(request.getText(), request.getRoadmap_id()));
     }
+
+    @DeleteMapping("/roadmap/{id}/delete")
+    public ResponseEntity<?> deleteRoadmap(@PathVariable(name="id") String roadmapId) {
+        try {
+            roadmapService.deleteRoadmapById(roadmapId);
+            return ResponseEntity.ok(Map.of("message", "Delete roadmap successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 }
 

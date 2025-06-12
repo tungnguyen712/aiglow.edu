@@ -19,4 +19,5 @@ public interface RoadmapServiceIf {
     CertificateAddDTO addCertificateToUser(String userId, CertificateDTO certRequest);
     CourseNodeDTO updateCourseNodeStatus(String nodeId, String newStatus);
     String buildNormalPrompt(String text, String id);
+    void deleteRoadmapById(String roadmapId);
 }

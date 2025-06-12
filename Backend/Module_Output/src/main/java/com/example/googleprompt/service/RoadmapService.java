@@ -626,6 +626,15 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
         }
     }
 
+    @Transactional
+    public void deleteRoadmapById(String roadmapId) {
+        if (!roadmapRepository.existsById(roadmapId)) {
+            throw new RuntimeException("Cannot find roadmap with ID: " + roadmapId);
+        }
+        courseNodeRepository.deleteByRoadmapId(roadmapId);
+        roadmapRepository.deleteById(roadmapId);
+    }
+
     private String cleanAIResponse(String aiResponse) {
         return aiResponse
                 .replaceAll("(?s)^```json\\s*", "")
