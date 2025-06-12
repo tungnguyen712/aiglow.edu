@@ -625,11 +625,18 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
         String aiResponse = promptService.generateTextFromPrompt(text + "\n" + training);
         Gson gson = new Gson();
         try {
-            rm = gson.fromJson(aiResponse, rm.getClass());
+            rm = gson.fromJson(cleanAIResponse(aiResponse), rm.getClass());
             roadmapRepository.save(rm);
-            return "Update roadmap successfully"
+            return "Update roadmap successfully";
         } catch (JsonSyntaxException e) {
-            return aiResponse;
+            return cleanAIResponse(aiResponse);
         }
+    }
+
+    private String cleanAIResponse(String aiResponse) {
+        return aiResponse
+                .replaceAll("(?s)^```json\\s*", "")
+                .replaceAll("(?s)```\\s*$", "")
+                .trim();
     }
 }
