@@ -9,22 +9,29 @@ gemini:
 
 #spring:
 # datasource:
-#  url: jdbc:postgresql://localhost:5432/DXTExample
+#  url: jdbc:postgresql://dxtdb.cf2m6ku2yplo.ap-southeast-2.rds.amazonaws.com:5432/dxtDB
 #  username: postgres
-#  password: lytruongtho123
+#  password: dxtDB123
 #  driver-class-name: org.postgresql.Driver
 
 spring:
  datasource:
-  url: jdbc:postgresql://dxtdb.cf2m6ku2yplo.ap-southeast-2.rds.amazonaws.com:5432/dxtDB
-  username: postgres
-  password: dxtDB123
+  url: jdbc:postgresql://localhost:5432/rag_db
+  username: rag_user
+  password: rag_password
   driver-class-name: org.postgresql.Driver
+
+#spring:
+# datasource:
+#  url: jdbc:postgresql://dxtdb.cf2m6ku2yplo.ap-southeast-2.rds.amazonaws.com:5432/dxtDB
+#  username: postgres
+#  password: dxtDB123
+#  driver-class-name: org.postgresql.Driver
 
  jpa:
   database-platform: org.hibernate.dialect.PostgreSQLDialect
   hibernate:
-   ddl-auto: update
+   ddl-auto: validate
   show-sql: true
 
 embedding:
@@ -32,3 +39,7 @@ embedding:
  endpoints:
   search: /search
   embed: /embed
+
+logging:
+ level:
+  root=INFO:

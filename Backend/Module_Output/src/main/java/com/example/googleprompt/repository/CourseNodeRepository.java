@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface CourseNodeRepository extends JpaRepository<CourseNodeEntity, String> {
+    List<CourseNodeEntity> findByRoadmapId(String roadmapId);
 }

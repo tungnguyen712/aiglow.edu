@@ -1,5 +1,6 @@
 package com.example.googleprompt.service;
 
+import com.example.googleprompt.controller.NotificationController;
 import com.example.googleprompt.entity.CertificateEntity;
 import com.example.googleprompt.entity.CourseNodeEntity;
 import com.example.googleprompt.entity.RoadmapEntity;
@@ -20,9 +21,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.checkerframework.checker.units.qual.s;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -42,6 +45,8 @@ public class RoadmapService implements RoadmapServiceIf {
     private final PromptServiceIf promptService;
     private final EmbeddingServiceIf embeddingService;
     private final ObjectMapper objectMapper;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationController notificationController;
     private final Map<String, RMResponse> roadmapStore = new ConcurrentHashMap<>();
 
     public RoadmapService(PromptService promptService,
@@ -50,7 +55,9 @@ public class RoadmapService implements RoadmapServiceIf {
                           CourseNodeRepository courseNodeRepository,
                           UserRepository userRepository,
                           CertificateRepository certificateRepository,
-                          EmbeddingService embeddingService) {
+                          EmbeddingService embeddingService,
+                          SimpMessagingTemplate messagingTemplate,
+                          NotificationController notificationController) {
         this.promptService = promptService;
         this.objectMapper = objectMapper;
         this.roadmapRepository = roadmapRepository;
@@ -58,6 +65,8 @@ public class RoadmapService implements RoadmapServiceIf {
         this.userRepository = userRepository;
         this.certificateRepository = certificateRepository;
         this.embeddingService = embeddingService;
+        this.messagingTemplate = messagingTemplate;
+        this.notificationController = notificationController;
     }
 
     @Override
@@ -85,28 +94,11 @@ public class RoadmapService implements RoadmapServiceIf {
 
         try {
             JsonNode rootNode = objectMapper.readTree(cleaned);
-
-            // Nếu resources là object thay vì array → sửa lại
-//            JsonNode resourcesNode = rootNode.get("resources");
-//            if (resourcesNode != null && resourcesNode.isObject()) {
-//                logger.warn("resources is object instead of array, converting...");
-//                ArrayNode arrayNode = objectMapper.createArrayNode();
-//                arrayNode.add(resourcesNode);
-//                ((ObjectNode) rootNode).set("resources", arrayNode);
-//            }
-
-            // Check một số trường quan trọng
             if (!rootNode.has("roadmap")) {
                 throw new IllegalArgumentException("Lacking 'roadmap'");
             }
 
             ObjectNode roadmapNode = (ObjectNode) rootNode.get("roadmap");
-            //tạm thời không cần
-//            if (request.getPreviousRoadmapIds() != null && !request.getPreviousRoadmapIds().isEmpty()) {
-//                ArrayNode previousIdsNode = objectMapper.createArrayNode();
-//                request.getPreviousRoadmapIds().forEach(previousIdsNode::add);
-//                roadmapNode.set("previousRoadmapIds", previousIdsNode);
-//            }
 
             roadmapNode.put("roadmapId", generatedId);
             roadmapNode.put("userId", request.getUserId());
@@ -121,11 +113,6 @@ public class RoadmapService implements RoadmapServiceIf {
                 }
             }
 
-
-//            if (!rootNode.has("resources")) {
-//                logger.warn("Lacking 'resources'");
-//                ((ObjectNode) rootNode).putArray("resources");
-//            }
             if (!rootNode.has("advice")) {
                 logger.warn("Lacking 'advice'");
                 ((ObjectNode) rootNode).putArray("advice");
@@ -177,16 +164,6 @@ public class RoadmapService implements RoadmapServiceIf {
 
         try {
             JsonNode rootNode = objectMapper.readTree(cleaned);
-
-            //JsonNode resourcesNode = rootNode.get("resources");
-//            if (resourcesNode != null && resourcesNode.isObject()) {
-//                logger.warn("resources is object instead of array, converting...");
-//                ArrayNode arrayNode = objectMapper.createArrayNode();
-//                arrayNode.add(resourcesNode);
-//                ((ObjectNode) rootNode).set("resources", arrayNode);
-//            }
-
-
             if (!rootNode.has("roadmap")) {
                 throw new IllegalArgumentException("Lacking 'roadmap'");
             }
@@ -195,16 +172,6 @@ public class RoadmapService implements RoadmapServiceIf {
             roadmapNode.put("userId", request.getUserId());
             logger.info("Enforced roadmapId: {}", generatedId);
 
-//            if (request.getPreviousRoadmapIds() != null && !request.getPreviousRoadmapIds().isEmpty()) {
-//                ArrayNode previousIdsNode = objectMapper.createArrayNode();
-//                request.getPreviousRoadmapIds().forEach(previousIdsNode::add);
-//                roadmapNode.set("previousRoadmapIds", previousIdsNode);
-//            }
-
-//            if (!rootNode.has("resources")) {
-//                logger.warn("Lacking 'resources'");
-//                ((ObjectNode) rootNode).putArray("resources");
-//            }
             ArrayNode nodesArray = (ArrayNode) roadmapNode.get("nodes");
             if (nodesArray != null) {
                 for (JsonNode node : nodesArray) {
@@ -240,15 +207,15 @@ public class RoadmapService implements RoadmapServiceIf {
     }
 
     private String buildPrompt(ManuRMRequest request, String roadmapId, List<String> nodeIds, String context) {
-        String previousIds = (request.getPreviousRoadmapIds() == null || request.getPreviousRoadmapIds().isEmpty()) ?
-                "None" : String.join(", ", request.getPreviousRoadmapIds());
+        /*String previousIds = (request.getPreviousRoadmapIds() == null || request.getPreviousRoadmapIds().isEmpty()) ?
+                "None" : String.join(", ", request.getPreviousRoadmapIds());*/
         return String.format("""
     You are an expert assistant. Generate a JSON response for a learning roadmap.
     Requirements:
     - The roadmap must contain **exactly 8 nodes** in total.
     - It must have a **tree-like structure** with **at least 3 levels** (root → child → grandchild), but returned as a **flat list**.
     - Each node is an object in the flat list, and the relationships between nodes are described using the field `"childIds"`.
-    - Do NOT include skills already learned or listed in previous roadmap IDs.
+    - Do NOT include skills already learned (selected skills) or listed in previous roadmap IDs.
     - All nodes must have:
       - You must use exactly these 8 pre-generated node IDs (in order): [%s]
       - Name of the skill
@@ -257,7 +224,7 @@ public class RoadmapService implements RoadmapServiceIf {
                                   "link" is the url to the course that help user acquire such skill.
                               - **Do NOT leave "link" empty or null.
                                 **Even if the course name is broad or general, you must provide a URL to a course, tutorial, article, or video that helps the user learn that specific topic or a major part of it.
-                                **If no direct course exists, choose a high-quality official documentation, tutorial series, or a popular online course on platforms like Udemy, Coursera, edX, or YouTube.  \s
+                                **If no exact course exists, you MUST still provide a valid working link to an existing tutorial, documentation, or video that covers the topic. NEVER return "undefined" or fake URLs. Prefer courses from platforms like Coursera, Udemy, edX, Khan Academy, Youtube (**real and existing youtube videos) or freeCodeCamp.
                               - All nodes should default to "unfinished" status.
       - Average time to finish in hours
       - The ID of the roadmap ("roadmapId")
@@ -358,7 +325,7 @@ Requirements:
       "link" is the url to the course that help user acquire such skill.
   - **Do NOT leave "link" empty or null.
   - **Even if the course name is broad or general, you must provide a URL to a course, tutorial, article, or video that helps the user learn that specific topic or a major part of it.
-  - **If no direct course exists, choose a high-quality official documentation, tutorial series, or a popular online course on platforms like Udemy, Coursera, edX, or YouTube.
+  - **If no exact course exists, you MUST still provide a valid working link to an existing tutorial, documentation, or video that covers the topic. NEVER return "undefined" or fake URLs. Prefer courses from platforms like Coursera, Udemy, edX, Khan Academy, Youtube(**real and existing youtube videos) or freeCodeCamp.
   - All nodes should default to "unfinished" status.
   - Average time to finish in hours
   - The ID of the roadmap ("roadmapId")
@@ -378,7 +345,7 @@ Input:
 - Certificate (if any): %s
 
 Context (for references):
-            %s
+                %s
 
 Return a JSON object strictly matching this format:
 {
@@ -505,6 +472,15 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
         certadd.setUrl(cert.getUrl());
         certadd.setFileUrl(certadd.getFileUrl());
 
+        /*NotificationMessage msg = new NotificationMessage();
+        msg.setUserId(userId);
+        msg.setType("CERT_ADDED");
+        msg.setMessage("You have added a new certification: " + cert.getName());
+        messagingTemplate.convertAndSend("/topic/notifications/" + user.getId(), msg);
+        logger.info("📢 Sent WebSocket message to user {}: {}", user.getId(), msg.getMessage());*/
+
+        notificationController.notifyCertAdded(userId, cert.getName());
+
         return certadd;
     }
 
@@ -520,6 +496,25 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
 
         node.setStatus(newStatus.toLowerCase());
         courseNodeRepository.save(node);
+
+        if (newStatus.equalsIgnoreCase("finished")){
+            RoadmapEntity roadmap = node.getRoadmap();
+            List<CourseNodeEntity> allNodes = courseNodeRepository.findByRoadmapId(roadmap.getId());
+            boolean allFinished = allNodes.stream()
+                    .allMatch(n -> "finished".equalsIgnoreCase(n.getStatus()));
+            if(allFinished){
+                roadmap.setStatus("completed");
+                roadmapRepository.save(roadmap);
+                /*NotificationMessage msg = new NotificationMessage();
+                msg.setUserId(roadmap.getUserId());
+                msg.setType("ROADMAP_COMPLETED");
+                msg.setMessage("🎉 You have completed this roadmap: " + roadmap.getName());
+
+                messagingTemplate.convertAndSend("/topic/notifications/" + roadmap.getUserId(), msg);
+                logger.info("📢 Gửi thông báo hoàn thành roadmap cho user {}: {}", roadmap.getUserId(), msg.getMessage());*/
+                notificationController.notifyRoadmapCompleted(roadmap.getUserId() ,roadmap.getName());
+            }
+        }
 
         CourseNodeDTO dto = new CourseNodeDTO();
         dto.setId(node.getId());
@@ -539,8 +534,6 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
         }
         return dto;
     }
-
-
 
     private RoadmapEntity mapToEntity(RoadMap dto) {
         RoadmapEntity entity = new RoadmapEntity();

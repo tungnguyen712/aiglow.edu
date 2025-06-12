@@ -59,6 +59,7 @@ function Dashboard() {
         try {
             setLoading(true);
             const rmListResponse = await mainApi.get(URLS.CHAT.SHOW_ROADMAP(selectedUserId));
+            console.log(rmListResponse);
             if (rmListResponse.data) {
                 console.log("Response data:", rmListResponse.data);
                 setUserRoadmaps(rmListResponse.data);
