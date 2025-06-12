@@ -26,7 +26,7 @@ public class RoadmapEntity {
     private Float progress;
     @Column(name = "status")
     private String status;
-    @OneToMany(mappedBy = "roadmap", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "roadmap", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<CourseNodeEntity> courseNodes;
 }

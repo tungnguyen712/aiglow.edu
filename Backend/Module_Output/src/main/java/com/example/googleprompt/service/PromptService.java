@@ -62,12 +62,32 @@ public class PromptService implements PromptServiceIf {
                 .build();
         currentHistory.add(userContent);
 
-        GenerateContentResponse response;
-        try {
-            response = aImodel.models.generateContent(this.geminiProperties.getModelName(), currentHistory, null);
-        } catch (Exception e) {
-            logger.error("Error calling Gemini API: {}", e.getMessage(), e);
-            chatResponse.setAiResponseParts(List.of(new ResponseContent(OutputPartType.TEXT, "Error communicating with AI: " + e.getMessage(), null)));
+        GenerateContentResponse response = null;
+        Exception lastException = null;
+
+        List<String> apiKeys = geminiProperties.getApiKeys();
+        if (apiKeys == null || apiKeys.isEmpty()) {
+            logger.error("No API keys configured");
+            chatResponse.setAiResponseParts(List.of(new ResponseContent(OutputPartType.TEXT, "Error: No API keys configured.", null)));
+            chatResponse.setUpdatedHistory(currentHistory);
+            return chatResponse;
+        }
+
+        for (String apiKey : apiKeys) {
+            try {
+                Client client = Client.builder().apiKey(apiKey).build();
+                response = client.models.generateContent(geminiProperties.getModelName(), currentHistory, null);
+                break; // thành công thì thoát vòng lặp
+            } catch (Exception e) {
+                logger.warn("API key [{}] failed: {}", apiKey, e.getMessage());
+                lastException = e;
+            }
+        }
+
+        if (response == null) {
+
+            String errorMsg = "Error: All API keys failed. Last error: " + (lastException != null ? lastException.getMessage() : "unknown");
+            chatResponse.setAiResponseParts(List.of(new ResponseContent(OutputPartType.TEXT, errorMsg, null)));
             chatResponse.setUpdatedHistory(currentHistory);
             return chatResponse;
         }

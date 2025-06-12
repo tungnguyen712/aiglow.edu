@@ -1,5 +1,6 @@
 package com.example.googleprompt.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
@@ -8,6 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class NormalChat {
+    @JsonProperty("roadmapId")
     private String roadmap_id;
     private String text;
 }

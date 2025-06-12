@@ -4,22 +4,24 @@ server:
 gemini:
  api-keys:
   - AIzaSyCnVXljwD0eNRdgf6IgsdLHJSX0To6PnCE
+  - AIzaSyCviXyk-BpBgG5Ulw9drQQX3Igz4sPiI6E
+  - AIzaSyDdX_pEOEpbZCLIfBxjl9r6NB48RL3uRvg
  endpoint: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
  model-name: models/gemini-2.0-flash
 
-#spring:
-# datasource:
-#  url: jdbc:postgresql://dxtdb.cf2m6ku2yplo.ap-southeast-2.rds.amazonaws.com:5432/dxtDB
-#  username: postgres
-#  password: dxtDB123
-#  driver-class-name: org.postgresql.Driver
-
 spring:
  datasource:
-  url: jdbc:postgresql://localhost:5432/rag_db
-  username: rag_user
-  password: rag_password
+  url: jdbc:postgresql://localhost:5432/DXTExample
+  username: postgres
+  password: lytruongtho123
   driver-class-name: org.postgresql.Driver
+
+#spring:
+# datasource:
+#  url: jdbc:postgresql://localhost:5432/rag_db
+#  username: rag_user
+#  password: rag_password
+#  driver-class-name: org.postgresql.Driver
 
 #spring:
 # datasource:
@@ -34,11 +36,11 @@ spring:
    ddl-auto: validate
   show-sql: true
 
-embedding:
- base-url: http://localhost:8000
- endpoints:
-  search: /search
-  embed: /embed
+#embedding:
+# base-url: http://localhost:8000
+# endpoints:
+#  search: /search
+#  embed: /embed
 
 logging:
  level:

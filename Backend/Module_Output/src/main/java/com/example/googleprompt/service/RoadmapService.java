@@ -5,10 +5,7 @@ import com.example.googleprompt.entity.CertificateEntity;
 import com.example.googleprompt.entity.CourseNodeEntity;
 import com.example.googleprompt.entity.RoadmapEntity;
 import com.example.googleprompt.entity.UserEntity;
-import com.example.googleprompt.model.ManuRMRequest;
-import com.example.googleprompt.model.ProfileRMRequest;
-import com.example.googleprompt.model.RMResponse;
-import com.example.googleprompt.model.RoadMap;
+import com.example.googleprompt.model.*;
 import com.example.googleprompt.model.dto.*;
 import com.example.googleprompt.repository.CertificateRepository;
 import com.example.googleprompt.repository.CourseNodeRepository;
@@ -18,13 +15,12 @@ import com.example.googleprompt.util.IdGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.genai.types.Content;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.checkerframework.checker.units.qual.s;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -33,6 +29,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -50,6 +47,7 @@ public class RoadmapService implements RoadmapServiceIf {
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationController notificationController;
     private final Map<String, RMResponse> roadmapStore = new ConcurrentHashMap<>();
+    private final ChatHistoryServiceIf chatHistoryService;
 
     public RoadmapService(PromptService promptService,
                           ObjectMapper objectMapper,
@@ -59,7 +57,8 @@ public class RoadmapService implements RoadmapServiceIf {
                           CertificateRepository certificateRepository,
                           EmbeddingService embeddingService,
                           SimpMessagingTemplate messagingTemplate,
-                          NotificationController notificationController) {
+                          NotificationController notificationController,
+                          ChatHistoryService chatHistoryService) {
         this.promptService = promptService;
         this.objectMapper = objectMapper;
         this.roadmapRepository = roadmapRepository;
@@ -69,6 +68,7 @@ public class RoadmapService implements RoadmapServiceIf {
         this.embeddingService = embeddingService;
         this.messagingTemplate = messagingTemplate;
         this.notificationController = notificationController;
+        this.chatHistoryService = chatHistoryService;
     }
 
     @Override
@@ -607,22 +607,88 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
         }
     }
 
-    public String buildNormalPrompt(String text, String id){
-        RoadmapEntity rm = roadmapRepository.findById(id).orElseThrow(() -> new RuntimeException("Roadmap not found"));
-        String training = "Analyze the request text" +
-                "1.If the request is ask to modify the roadmap, here is the current roadmap" +
-                rm.toString() +
-                ", analyze and modify the data and give me back in correct format so I can convert back to object from your text response, " +
-                "keep the Id \n" +
-                "2.If the request is normal question, just answer me in text";
-        String aiResponse = promptService.generateTextFromPrompt(text + "\n" + training);
-        Gson gson = new Gson();
+    @Transactional
+    public String buildNormalPrompt(String text, String id) {
+        RoadmapEntity existing = roadmapRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Roadmap not found"));
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        String training;
         try {
-            rm = gson.fromJson(cleanAIResponse(aiResponse), rm.getClass());
-            roadmapRepository.save(rm);
+            String roadmapJson = objectMapper.writeValueAsString(existing);
+            training = """
+            Analyze the request below.
+            If the request is to modify a roadmap, here is the current roadmap data in JSON format:
+
+            %s
+
+            You can assist the user in two ways:
+                        1. If the user wants to modify the roadmap (change 'due', 'hpw', or any course node that is 'unfinished'), then apply the changes and return the full updated roadmap JSON (preserve all IDs and non-editable fields).
+                        2. If the user does NOT request a modification, provide useful advice, learning tips, progress tracking, or encouragement — but strictly based on the current roadmap content.
+        Do not answer with "I will wait for a modification" or similar phrases. Always respond with something helpful related to the roadmap.
+        
+            You are only allowed to edit the following fields:
+            - Roadmap: due, hpw
+            - CourseNodes (only if status is 'unfinished'): name, link, avgTimeToFinish
+
+            Each course node contains: id, name, avgTimeToFinish, link, status, and childIds (list of string ids).
+            Only update course nodes that have status = "unfinished".
+
+            Return the full updated roadmap object (as JSON), keeping all IDs and non-editable fields unchanged.
+            After updating the roadmap, giving a response to address where has been changed.
+
+            Remember: Your response must always stay within the context of the given roadmap.
+        """.formatted(roadmapJson);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize roadmap to JSON", e);
+        }
+
+        List<Content> history = chatHistoryService.getHistory(id);
+        ChatResponse chatResponse = promptService.generateOutputWithContext(history, text + "\n" + training);
+        chatHistoryService.updateHistory(id, chatResponse.getUpdatedHistory());
+        String aiResponse = chatResponse.getAiResponseParts().stream()
+                .filter(p -> p.getType() == OutputPartType.TEXT)
+                .map(ResponseContent::getValue)
+                .collect(Collectors.joining("\n"));
+
+
+        try {
+            RoadmapEntity updated = objectMapper.readValue(cleanAIResponse(aiResponse), RoadmapEntity.class);
+
+            // Cập nhật các trường của RoadmapEntity
+            existing.setDue(updated.getDue());
+            existing.setHpw(updated.getHpw());
+            roadmapRepository.save(existing);
+
+            // Lấy danh sách node cũ từ DB
+            List<CourseNodeEntity> existingNodes = courseNodeRepository.findByRoadmapId(id);
+            Map<String, CourseNodeEntity> nodeMap = existingNodes.stream()
+                    .collect(Collectors.toMap(CourseNodeEntity::getId, Function.identity()));
+
+            // Lấy node mới từ updated
+            List<CourseNodeEntity> updatedNodes = updated.getCourseNodes();
+            List<CourseNodeEntity> nodesToSave = new ArrayList<>();
+
+            for (CourseNodeEntity updatedNode : updatedNodes) {
+                CourseNodeEntity existingNode = nodeMap.get(updatedNode.getId());
+                if (existingNode != null && "unfinished".equalsIgnoreCase(existingNode.getStatus())) {
+                    existingNode.setName(updatedNode.getName());
+                    existingNode.setLink(updatedNode.getLink());
+                    existingNode.setAvgTimeToFinish(updatedNode.getAvgTimeToFinish());
+                    nodesToSave.add(existingNode);
+                }
+            }
+
+            // BẮT BUỘC gọi saveAll
+            courseNodeRepository.saveAll(nodesToSave);
+
             return "Update roadmap successfully";
-        } catch (JsonSyntaxException e) {
-            return cleanAIResponse(aiResponse);
+
+        } catch (JsonProcessingException e) {
+            return cleanAIResponse(aiResponse);  // fallback nếu không parse được JSON
         }
     }
 
@@ -641,4 +707,5 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
                 .replaceAll("(?s)```\\s*$", "")
                 .trim();
     }
+
 }
