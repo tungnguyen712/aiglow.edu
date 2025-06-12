@@ -5,13 +5,16 @@ const SidebarContext = createContext();
 
 export const SidebarProvider = ({ children }) => {
     const [isOpen, setIsOpen] = useState(true);
+    const [statusContext, setStatusContext] = useState("on-track");
+    const [progressContext, setProgressContext] = useState(0);
+    const [newCourseList, setNewCourseList] = useState(null);
 
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
     };
 
     return (
-        <SidebarContext.Provider value={{ isOpen, toggleSidebar }}>
+        <SidebarContext.Provider value={{ isOpen, toggleSidebar, statusContext, setStatusContext, progressContext, setProgressContext, newCourseList, setNewCourseList }}>
             {children}
         </SidebarContext.Provider>
     );

@@ -29,8 +29,8 @@ const RoadmapCard = React.memo(({ item, handleEvent = () => {} }) => {
     const dueDate = item.due ? dayjs(item.due) : null;
     const daysLeft = dueDate ? dueDate.diff(today, "day") : Infinity;
 
-    const maxDailyWorkload = 10;
-    const maxAvailableTime = daysLeft * maxDailyWorkload;
+    const maxDailyWorkload = item.hpw;
+    const maxAvailableTime = daysLeft * (maxDailyWorkload/7);
 
     let status = "on-track";
     if (progress === 100) {
@@ -98,7 +98,7 @@ const RoadmapCard = React.memo(({ item, handleEvent = () => {} }) => {
                                     className="transform transition-all duration-200 hover:scale-110"
                                     content={<DeleteIcon 
                                         size={23} 
-                                        className="text-gray-700 dark:text-white hover:text-red-400 dark:hover:text-indigo-400 transition-colors"
+                                        className="text-gray-700 dark:text-white hover:text-red-400 transition-colors"
                                     />}
                                 />
                             </div>
@@ -151,6 +151,7 @@ RoadmapCard.propTypes = {
         name: PropTypes.string.isRequired,
         goal: PropTypes.string,
         due: PropTypes.string,
+        hpw: PropTypes.number,
         courseNodes: PropTypes.arrayOf(
             PropTypes.shape({
                 id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,

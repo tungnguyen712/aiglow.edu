@@ -16,12 +16,14 @@ import { URLS } from "@/services/url";
 // import { Modal } from "@/components/commons";
 // import MultiStepsForm from "@/components/views/MultiStepsForm";
 import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
+import { useSidebar } from "@/context/SidebarContext";
 // import { mainApi } from "@/services/api";
 // import { useState } from "react";
 
 const ConnectedInfo =  () => {
     const { roomId } = useParams();
     const { resetForm } = useMultiStepsFormContext();
+    const { statusContext, setStatusContext, progressContext, setProgressContext, newCourseList } = useSidebar();
     // const [showModal, setShowModal] = useState(false);
     // const [showToast, setShowToast] = useState(false);
     // const { formData, setFormData } = useFormDBContext();
@@ -49,34 +51,48 @@ const ConnectedInfo =  () => {
         loadNodes();
     },[loadNodes])
 
+    useEffect(() => {
+        if (!roadmap || nodeList.length === 0) return;
+        let courses = null;
+
+        if (newCourseList != null) {
+            courses = newCourseList;
+        } else {
+            courses = nodeList.filter(course => course.roadmapId === roomId);
+        }
+
+        const total = courses.length;
+        const completed = courses.filter(node => node.status === "finished").length;
+        const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+        const unfinishedCourses = courses.filter(node => node.status !== "finished");
+        const remainingTime = unfinishedCourses.reduce((acc, node) => acc + node.avgTimeToFinish, 0);
+
+        const today = dayjs();
+        const dueDate = roadmap.due ? dayjs(roadmap.due) : null;
+        const daysLeft = dueDate ? dueDate.diff(today, "day") : Infinity;
+
+        const maxDailyWorkload = roadmap.hpw;
+        const maxAvailableTime = daysLeft * (maxDailyWorkload / 7);
+
+        let status = "on-track";
+        if (progress === 100) {
+            status = "finished";
+        } else if (dueDate && remainingTime > maxAvailableTime) {
+            status = "behind";
+        }
+
+        setStatusContext(status);
+        setProgressContext(progress);
+    }, [nodeList, roadmap, roomId]);
+
+
     if (!roadmap) {
-    return (
-        <div className="p-4 text-red-500">
-            Roadmap not found.
-        </div>
-    );
-}
-
-    const courses = nodeList.filter(course => course.roadmapId === roomId);
-    const total = courses.length;
-    const completed = courses.filter(node => node.status === "finished").length;
-    const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
-
-    const unfinishedCourses = courses.filter(node => node.status !== "finished");
-    const remainingTime = unfinishedCourses.reduce((acc, node) => acc + node.avgTimeToFinish, 0);
-
-    const today = dayjs();
-    const dueDate = roadmap.due ? dayjs(roadmap.due) : null;
-    const daysLeft = dueDate ? dueDate.diff(today, "day") : Infinity;
-
-    const maxDailyWorkload = 10;
-    const maxAvailableTime = daysLeft * maxDailyWorkload;
-
-    let status = "on-track";
-    if (progress === 100) {
-        status = "finished";
-    } else if (dueDate && remainingTime > maxAvailableTime) {
-        status = "behind";
+        return (
+            <div className="p-4 text-red-500">
+                Roadmap not found.
+            </div>
+        );
     }
 
     // const handleEdit = () => {
@@ -192,14 +208,14 @@ const ConnectedInfo =  () => {
                             </tr>
                             <tr className="border-b border-gray-200 dark:border-gray-700">
                                 <th className="w-1/2 py-2 font-medium text-gray-800 dark:text-gray-200">Status</th>
-                                <td className="w-1/2 py-2">{status==="on-track"?"On Track":status==="behind"?"Behind Schedule":"Finished"}</td>
+                                <td className="w-1/2 py-2">{statusContext==="on-track"?"On Track":statusContext==="behind"?"Behind Schedule":"Finished"}</td>
                             </tr>
                         </tbody>
                     </table>
                     <div className="mb-2">
-                        <Progress value={progress} status={status} />
+                        <Progress value={progressContext} status={statusContext} />
                         <p className="text-xs mt-1 text-gray-600 dark:text-gray-300">
-                            {progress}% complete
+                            {progressContext}% complete
                         </p>
                     </div>
                 </div>

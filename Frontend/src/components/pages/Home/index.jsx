@@ -161,8 +161,8 @@ function Dashboard() {
                     const dueDate = roadmap.due ? dayjs(roadmap.due) : null;
                     const daysLeft = dueDate ? dueDate.diff(today, "day") : Infinity;
                 
-                    const maxDailyWorkload = 10;
-                    const maxAvailableTime = daysLeft * maxDailyWorkload;
+                    const maxDailyWorkload = roadmap.hpw;
+                    const maxAvailableTime = daysLeft * (maxDailyWorkload/7);
                 
                     let status = "on-track";
                     if (progress === 100) {

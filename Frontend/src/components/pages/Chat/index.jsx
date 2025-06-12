@@ -7,10 +7,11 @@ import { URLS } from "@/services/url";
 // import { getAccessToken } from "@/utils/auth";
 import { useTheme } from "@/context/ThemeContext";
 // import { useFormDBContext } from "@/context/DBFromContext";
+import { Modal } from "@/components/commons";
 
 import Layout from "@/components/layouts";
 import { Button, Skeleton } from "@/components/commons";
-import { MicrophoneIcon, SentIcon, StopCircle } from "@/assets/icons";
+import { MicrophoneIcon, SentIcon, StopCircle, GreenCheckCircle } from "@/assets/icons";
 import Message from "@/components/views/Message";
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/cjs/styles/hljs/index.js";
@@ -24,6 +25,7 @@ import { TypeAnimation } from 'react-type-animation';
 import LearningPath from "@/components/views/LearningPath"
 // import { Modal } from "@/components/commons";
 import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
+import { useSidebar } from "@/context/SidebarContext";
 import { toast } from "react-toastify";
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -37,8 +39,12 @@ function Chat() {
     const [message, setMessage] = useState("");
     const [listening, setListening] = useState(false);
     const [chatRs, setChatRs] = useState({});
-    const [sending, setSending] = useState(false);
+    const [loadingState, setLoadingState] = useState(false);
     const [reloadAfterStatusChange, setReloadAfterStatusChange] = useState(false);
+    const { setNewCourseList } = useSidebar();
+    const [showModal, setShowModal] = useState(false);
+    const [isLate, setIsLate] = useState(false);
+
     // const [chat, setChat] = useState([]);
     const chat = null;
     const [showChart, setShowChart] = useState(false);
@@ -63,12 +69,13 @@ function Chat() {
 
     const loadNodes = useCallback(async () => {
         try {
-            setSending(true);
+            setLoadingState(true);
             const nodeListResponse = await mainApi.get(URLS.CHAT.SHOW_ROADMAP("u123"));
             if (nodeListResponse.data) {
                 const courses = nodeListResponse.data.filter(course => course.id === roomId);
                 console.log("Response data:", courses[0].courseNodes);
                 setCourseList(courses[0].courseNodes);
+                setNewCourseList(courses[0].courseNodes);
             } else {
                 console.error("Received empty or invalid response data.");
                 // toast error
@@ -76,7 +83,7 @@ function Chat() {
         } catch (error) {
             console.error(error);
         } finally {
-            setSending(false);
+            setLoadingState(false);
         }
     }, [roomId]);
 
@@ -151,6 +158,12 @@ function Chat() {
             setReloadAfterStatusChange(false);
         }
         setCourseList(updatedCourseList);
+        setNewCourseList(updatedCourseList);
+
+        if(updatedCourseList.every(course => course.status === "finished")) {
+            toast.success("🎉 Congratulations! You’ve completed the entire learning path!");
+            setShowModal(true);
+        }
     }
 
     const toggleListening = () => {
@@ -245,16 +258,16 @@ function Chat() {
     const handleSendMessage = async () => {
         // const data = { query: message, room_id: Number(roomId) };
         setChatRs({})
-        setSending(true);
+        setLoadingState(true);
         // setMockMessage("");
         setTimeout(()=>{
-            setSending(false);
+            setLoadingState(false);
             // setMockMessage(message);
         }, 2000)
         setShowChart(false);
         // if (message) {
         //     try {
-        //         setSending(true);
+        //         setLoadingState(true);
         //         const sendMessage = await mainApi.post(URLS.CHAT.SEND_MESSAGE, data, { headers, withCredentials: true });
         //         setChatRs(sendMessage.data);
         //     } catch (e) {
@@ -272,7 +285,7 @@ function Chat() {
         //     } finally {
         //         await showRoom();
         //         setShowChart(true)
-        //         setSending(false);
+        //         setLoadingState(false);
         //         setMessage("");
         //     }
         // }
@@ -376,7 +389,7 @@ function Chat() {
                 <div className="min-h-[calc(100vh-181px)] lg:min-h-[calc(100vh-145px)]">
                     <div className="flex flex-col-reverse lg:grid lg:grid-cols-3 items-center gap-5 h-full rounded-3xl">
                         <div className="col-span-2 p-5 rounded-2xl w-full h-full bg-white dark:bg-slate-800 relative">
-                            {(sending || reloadAfterStatusChange) ? (
+                            {(loadingState || reloadAfterStatusChange) ? (
                                 <Skeleton />
                             ) : (
                                 showChart && (
@@ -410,7 +423,7 @@ function Chat() {
                                 )
                             )}
 
-                            {/* {formData.status === "disconnected" && !sending && (
+                            {/* {formData.status === "disconnected" && !loadingState && (
                                 <p className="text-black dark:text-white text-center mt-5">No data displayed.</p>
                             )} */}
 
@@ -426,10 +439,16 @@ function Chat() {
                                 <Message key={index} message={msg.content} sender={msg.sender} avatar=""/>
                             ))}
 
-                            {!sending && (<div className="font-bold text-xl mt-6 text-gray-600 dark:text-white">Learning Paths</div>)}
+                            {!loadingState && (<div className="font-bold text-xl mt-6 text-gray-600 dark:text-white">Learning Paths</div>)}
                             <div className="py-2">
                                 <ol className="list-decimal ml-6 text-xl">
-                                    {!sending && courseList?.map((course) => (
+                                    {!loadingState && courseList?.map((course) => {
+                                        const maxLength = 30;
+                                        const truncatedLink = course.link.length > maxLength
+                                            ? course.link.slice(0, maxLength) + "..."
+                                            : course.link;
+
+                                        return (
                                         <div key={course.link} className="mb-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="inline-flex items-center">
@@ -461,28 +480,39 @@ function Chat() {
                                                         speed={50}
                                                         wrapper="span"
                                                         cursor={false}
-                                                        style={{ display: "inline-block" }}
+                                                        style={{ display: "block" }}
                                                         className={`text-lg ${course.status === "finished" ? "text-gray-400 line-through" : "text-green-600"}`}
                                                     />
                                                 </a>
-                                                </div>
+                                            </div>
                                             <div className="ml-6">
+                                                <a href={course.link}>
+                                                    <TypeAnimation
+                                                        key={course.status}
+                                                        sequence={[truncatedLink]}
+                                                        speed={50}
+                                                        wrapper="span"
+                                                        cursor={false}
+                                                        style={{ display: "block" }}
+                                                        className={`text-sm text-gray-400 ${course.status === "finished" ? "line-through" : ""}`}
+                                                    />
+                                                </a>
                                                 <TypeAnimation
                                                     sequence={[`Average time to finish the course: ${course.avgTimeToFinish} hours`]}
                                                     speed={50}
                                                     wrapper="span"
                                                     cursor={false}
                                                     style={{ display: "inline-block" }}
-                                                    className="text-base text-gray-600 dark:text-gray-400 ml-6"
+                                                    className={`text-xs text-gray-600 dark:text-gray-400 ml-6`}
                                                 />
                                             </div>  
                                         </div>
-                                    ))}
+                                    );})}
                                 </ol>
                             </div>
 
 
-                            {sending && <Skeleton/>}
+                            {loadingState && <Skeleton/>}
                         </div>
                     </div>
                 </div>
@@ -515,8 +545,8 @@ function Chat() {
                             />
 
                             <Button
-                                content={sending ? <StopCircle/> : <SentIcon/>}
-                                disabled={!message || listening || sending}
+                                content={loadingState ? <StopCircle/> : <SentIcon/>}
+                                disabled={!message || listening || loadingState}
                                 handleEvent={()=>{
                                     handleSendMessage();
                                     setMessage("");
@@ -527,6 +557,24 @@ function Chat() {
                     </div>
                 </div>
             </div>
+            <Modal isShow={showModal} noBorder={true} onClose={() => {
+                        setShowModal(!showModal);
+                    }
+                }>
+                <div className="flex flex-col items-center text-center space-y-4">
+                    <GreenCheckCircle/>
+                    <h2 className="text-2xl font-bold text-green-600">Congratulations!</h2>
+                    <p className="text-gray-700 dark:text-gray-200">
+                        You’ve completed the entire learning path. Keep going and never stop growing!
+                    </p>
+                    <Button
+                        type="button"
+                        content="Dismiss"
+                        handleEvent={() => setShowModal(!showModal)}
+                        className="transition delay-50 duration-200 ease-in-out w-full py-2.5 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700"
+                    />
+                </div>
+            </Modal>
         </Layout>
     );
 }
