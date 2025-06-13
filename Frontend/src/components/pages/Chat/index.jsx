@@ -5,53 +5,45 @@ import { mainApi } from "@/services/api";
 import { URLS } from "@/services/url";
 // import { getAccessToken, headers } from "@/utils/auth";
 // import { getAccessToken } from "@/utils/auth";
-import { useTheme } from "@/context/ThemeContext";
 // import { useFormDBContext } from "@/context/DBFromContext";
 import { Modal } from "@/components/commons";
 
 import Layout from "@/components/layouts";
 import { Button, Skeleton } from "@/components/commons";
-import { MicrophoneIcon, SentIcon, StopCircle, GreenCheckCircle } from "@/assets/icons";
+import { GreenCheckCircle } from "@/assets/icons";
 import Message from "@/components/views/Message";
-import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
-import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/cjs/styles/hljs/index.js";
 // import config from "@/config";
-import RenderChart from "@/components/views/RenderChart";
 // import { Flip, toast } from "react-toastify";
 // import { MockImage, ImageNotFound } from "@/assets/images";
 import { motion } from "framer-motion";
 import { TypeAnimation } from 'react-type-animation';
 // import { courseNodes } from "@/mock/data";
 import LearningPath from "@/components/views/LearningPath"
+import ChatBotWidget from "@/components/views/ChatBotWidget"
 // import { Modal } from "@/components/commons";
-import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
+// import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
 import { useSidebar } from "@/context/SidebarContext";
+import { useChatBot } from "@/context/ChatBotContext";
 import { toast } from "react-toastify";
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
 function Chat() {
     const { roomId } = useParams();
     // const navigate = useNavigate();
-    const { darkMode } = useTheme();
     // const { formData, setFormData } = useFormDBContext();
-    const [message, setMessage] = useState("");
-    const [listening, setListening] = useState(false);
-    const [chatRs, setChatRs] = useState({});
     const [loadingState, setLoadingState] = useState(false);
     const [reloadAfterStatusChange, setReloadAfterStatusChange] = useState(false);
     const { setNewCourseList, statusContext } = useSidebar();
+    const { updateRequired, setUpdateRequired } = useChatBot();
     const [showModal, setShowModal] = useState(false);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
 
     // const [chat, setChat] = useState([]);
     const chat = null;
-    const [showChart, setShowChart] = useState(false);
 
     // const [showModal, setShowModal] = useState(false);
     const [showToast, setShowToast] = useState(false);
-    const { formState } = useMultiStepsFormContext();
+    // const { formState } = useMultiStepsFormContext();
     // const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [courseList, setCourseList] = useState([]);
@@ -67,12 +59,6 @@ function Chat() {
     useEffect(() => {
         setIsLate(statusContext === "behind");
     }, [statusContext]);
-
-    const handleInput = (e) => {
-        e.target.style.height = "auto";
-        e.target.style.height = `${Math.min(e.target.scrollHeight, 96)}px`;
-        setMessage(e.target.value);
-    };
 
     const loadNodes = useCallback(async () => {
         try {
@@ -97,39 +83,6 @@ function Chat() {
     useEffect(()=> {
         loadNodes();
     },[loadNodes])
-
-    // const handlePrepareData = async (data) => {
-    //     setIsSubmitting(true);
-    //     try {
-    //         let roadmapResponse;
-    //         formState({ data });
-    //         if (data.knowledgeSource === "profile") {
-    //             roadmapResponse = await mainApi.post(URLS.CHAT.SEND_ROADMAP_REQ_AUTO, data, {headers: {
-    //                     "Content-Type": "application/json"
-    //             }});
-    //         } else {
-    //             roadmapResponse = await mainApi.post(URLS.CHAT.SEND_ROADMAP_REQ, data, {headers: {
-    //                     "Content-Type": "application/json"
-    //             }});
-    //         }
-    //         if (roadmapResponse.data) {
-    //             console.log("Response data:", roadmapResponse.data);
-    //             navigate(`/chat/${roadmapResponse.data.roadmap.roadmapId}`);
-    //         } else {
-    //             console.error("Received empty or invalid response data.");
-    //         }
-            
-    //     } catch (e) {
-    //         console.error("Error preparing data:", e);
-    //     } finally {
-    //         // setIsPendingNavigation(false);
-    //         setIsSubmitting(false);
-    //     }
-    // };
-
-    // const handleShowToast = () => {
-    //     setShowToast(true);
-    // };
 
     const handleCloseToast = () => {
         setShowToast(false);
@@ -198,151 +151,19 @@ function Chat() {
         setShowUpdateModal(true);
     }
 
-    const toggleListening = () => {
-        if (!recognition) {
-            alert("Speech Recognition API is not supported in this browser.");
-            return;
-        }
-
-        if (listening) {
-            recognition.stop();
-        } else {
-            recognition.start();
-        }
-
-        console.log("Data:", formState);
-    };
-
-    useEffect(() => {
-        if (!recognition) return;
-
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.lang = "en-UK";
-
-        recognition.onstart = () => {
-            setListening(true);
-        };
-
-        recognition.onresult = (event) => {
-            const transcript = Array.from(event.results)
-                .map(result => result[0].transcript)
-                .join("");
-            setMessage(transcript);
-        };
-
-        recognition.onend = () => {
-            setListening(false);
-        };
-
-        recognition.onerror = (event) => {
-            console.log(event.error);
-            setListening(false);
-        };
-
-    }, [roomId]);
-
-    // const handleNewChat = () => {
-    //     setFormData({
-    //         type: "",
-    //         dbms: "",
-    //         username: "",
-    //         password: "",
-    //         databaseName: "",
-    //         host: "",
-    //         port: "",
-    //     })
-    //     setShowModal(!showModal)
-    // }
-
-    // const showRoom = useCallback(
-    //     async () => {
-    //         try {
-    //             const showResponse = await mainApi.get(URLS.CHAT.SHOW_ROOM(roomId), {
-    //                 headers: {
-    //                     Authorization: `Bearer ${getAccessToken()}`,
-    //                 },
-    //                 withCredentials: true,
-    //             });
-    //             if (JSON.stringify(showResponse.data) !== JSON.stringify(chat)) {
-    //                 setChat(showResponse.data);
-    //                 setFormData({
-    //                     type: showResponse.data.type,
-    //                     dbms: showResponse.data.dbms,
-    //                     username: showResponse.data.user,
-    //                     password: showResponse.data.password,
-    //                     databaseName: showResponse.data.database,
-    //                     host: showResponse.data.host,
-    //                     port: showResponse.data.port,
-    //                     status: showResponse.data.status,
-    //                 });
-    //             }
-    //         } catch (error) {
-    //             console.error(error);
-    //         }
-    //     }, [roomId, setFormData, chat]
-    // );
-
-    // useEffect(() => {
-    //     showRoom();
-    // }, [showRoom]);
-
-    const handleSendMessage = async () => {
-        // const data = { query: message, room_id: Number(roomId) };
-        setChatRs({})
-        setLoadingState(true);
-        // setMockMessage("");
-        setTimeout(()=>{
-            setLoadingState(false);
-            // setMockMessage(message);
-        }, 2000)
-        setShowChart(false);
-        // if (message) {
-        //     try {
-        //         setLoadingState(true);
-        //         const sendMessage = await mainApi.post(URLS.CHAT.SEND_MESSAGE, data, { headers, withCredentials: true });
-        //         setChatRs(sendMessage.data);
-        //     } catch (e) {
-        //         console.error(e);
-        //         toast.error("An error has occurred. Please try again later.", {
-        //             position: "top-right",
-        //             autoClose: 2000,
-        //             hideProgressBar: false,
-        //             pauseOnHover: true,
-        //             draggable: true,
-        //             theme: "colored",
-        //             transition: Flip,
-        //             closeButton: false,
-        //         });
-        //     } finally {
-        //         await showRoom();
-        //         setShowChart(true)
-        //         setLoadingState(false);
-        //         setMessage("");
-        //     }
-        // }
-    };
-
-    // const handleSaveAndClose = async () => {
-    //     try {
-    //         await mainApi.post(URLS.CHAT.SAVE_AND_CLOSE, { roomId: Number(roomId) }, {
-    //             headers,
-    //             withCredentials: true,
-    //         });
-    //         navigate(config.routes.HOME);
-    //     } catch (e) {
-    //         console.error(e);
-    //         toast.error("An error has occurred. Please try again later.", {
-    //             position: "top-right",
-    //             autoClose: 2000,
-    //             hideProgressBar: false,
-    //             pauseOnHover: true,
-    //             draggable: true,
-    //             theme: "colored",
-    //             transition: Flip,
-    //             closeButton: false,
-    //         });
+    // const toggleListening = () => {
+    //     if (!recognition) {
+    //         alert("Speech Recognition API is not supported in this browser.");
+    //         return;
     //     }
+
+    //     if (listening) {
+    //         recognition.stop();
+    //     } else {
+    //         recognition.start();
+    //     }
+
+    //     console.log("Data:", formState);
     // };
 
     return (
@@ -439,29 +260,34 @@ function Chat() {
                             </button>
                         </div>
                     )}
+                    {updateRequired && (
+                        <div className="flex items-start justify-between border border-cyan-500 bg-cyan-100 text-cyan-700 p-4 rounded-xl mb-4">
+                            <div>
+                            <p className="font-semibold">🔄 Your roadmap has been updated. Would you like to reload the page to see the changes?</p>
+                            
+                            <button 
+                                className="mt-2 inline-block bg-cyan-500 text-white px-3 py-1 rounded hover:bg-cyan-600"
+                                onClick={() => {
+                                    setUpdateRequired(false);
+                                    window.location.reload();
+                                }}
+                            >
+                                Reload Page
+                            </button>
+                            </div>
+                            <button
+                                className="ml-4 text-cyan-500 hover:text-cyan-700 text-xl font-bold"
+                                onClick={() => setUpdateRequired(false)}
+                            >
+                                &times;
+                            </button>
+                        </div>
+                    )}
                     <div className="flex flex-col-reverse lg:grid lg:grid-cols-3 items-center gap-5 h-full rounded-3xl">
                         <div className="col-span-2 p-5 rounded-2xl w-full h-full bg-white dark:bg-slate-800 relative">
                             {(loadingState || reloadAfterStatusChange) ? (
                                 <Skeleton />
                             ) : (
-                                showChart && (
-                                    <div>
-                                        <div className="mb-10">
-                                            <h2 className="text-xl font-bold dark:text-white mb-4">SQL Query</h2>
-                                            <SyntaxHighlighter
-                                                language="sql"
-                                                style={darkMode ? atomOneDark : atomOneLight}
-                                                className="rounded-xl text-sm"
-                                                customStyle={{ padding: "20px 30px" }}
-                                            >
-                                                {chatRs.sql_query}
-                                            </SyntaxHighlighter>
-                                        </div>
-
-                                        <RenderChart apiResponse={chatRs} />
-                                    </div>
-                                ) || (
-
                                 <div className="mb-10">
                                     <h2 className="text-xl font-bold dark:text-white mb-4">Your Roadmap</h2>
                                     <motion.div
@@ -472,7 +298,6 @@ function Chat() {
                                         <LearningPath courseList={courseList} />
                                     </motion.div>
                                 </div>
-                                )
                             )}
 
                             {/* {formData.status === "disconnected" && !loadingState && (
@@ -569,45 +394,45 @@ function Chat() {
                     </div>
                 </div>
 
-                <div
-                    className="sticky bottom-6 mt-6 mx-auto w-full lg:w-[600px] shadow dark:shadow-gray-600 backdrop-blur-sm rounded-3xl">
-                    <div className="flex flex-row items-center rounded-3xl bg-white dark:bg-slate-800 px-5">
-                        <textarea
-                            className="flex w-full focus:outline-none py-3 bg-transparent text-black dark:text-white resize-none scrollbar-transparent"
-                            placeholder="Type your message here..."
-                            value={message} 
-                            onChange={handleInput}
-                            rows={1}
-                            style={{ maxHeight: "96px" }}
-                            onKeyDown={(e) => {
+                {/* <div className="fixed bottom-6 right-6 z-50 w-full max-w-[360px]">
+                    <div className="shadow-lg dark:shadow-gray-600 backdrop-blur-sm rounded-3xl overflow-hidden">
+                        <div className="flex flex-row items-center bg-white dark:bg-slate-800 px-4 py-2 rounded-3xl">
+                            <textarea
+                                className="flex w-full focus:outline-none py-2 bg-transparent text-black dark:text-white resize-none scrollbar-transparent"
+                                placeholder="Type your message here..."
+                                value={message}
+                                onChange={handleInput}
+                                rows={1}
+                                style={{ maxHeight: "96px" }}
+                                onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault();
                                     handleSendMessage();
                                     setMessage("");
                                 }
-                            }}
-                        />
-
-                        <div className="flex flex-row gap-x-4 pl-4 items-center">
-                            <Button
-                                content={<MicrophoneIcon
-                                    className={listening ? "animate-pulse text-red-500" : ""} />}
-                                handleEvent={toggleListening}
-                                className="flex items-center justify-center text-dark dark:text-white hover:text-gray-600"
-                            />
-
-                            <Button
-                                content={loadingState ? <StopCircle/> : <SentIcon/>}
-                                disabled={!message || listening || loadingState}
-                                handleEvent={()=>{
-                                    handleSendMessage();
-                                    setMessage("");
                                 }}
-                                className="flex items-center justify-center text-dark dark:text-white hover:text-gray-600"
                             />
+
+                            <div className="flex flex-row gap-x-2 pl-3 items-center">
+                                <Button
+                                    content={<MicrophoneIcon className={listening ? "animate-pulse text-red-500" : ""} />}
+                                    handleEvent={toggleListening}
+                                    className="text-dark dark:text-white hover:text-gray-600"
+                                />
+
+                                <Button
+                                    content={loadingState ? <StopCircle /> : <SentIcon />}
+                                    disabled={!message || listening || loadingState}
+                                    handleEvent={() => {
+                                        handleSendMessage();
+                                        setMessage("");
+                                    }}
+                                    className="text-dark dark:text-white hover:text-gray-600"
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>
             <Modal isShow={showModal} noBorder={true} onClose={() => {
                         setShowModal(!showModal);
@@ -667,6 +492,7 @@ function Chat() {
                     </div>
                 </div>
             </Modal>
+            <ChatBotWidget />
         </Layout>
     );
 }

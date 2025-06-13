@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
-import {ThemeProvider, SidebarProvider, MultiStepsFormContextProvider, DBFromContextProvider} from "./context";
+import {ThemeProvider, SidebarProvider, MultiStepsFormContextProvider, DBFromContextProvider, ChatBotProvider} from "./context";
 import { CertificateContextProvider } from "@/context/CertificateContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -15,14 +15,16 @@ createRoot(document.getElementById("root")).render(
         <ThemeProvider>
             <GoogleOAuthProvider clientId={clientId}>
                 <SidebarProvider>
-                    <MultiStepsFormContextProvider>
-                        <DBFromContextProvider>
-                            <CertificateContextProvider>
-                                <App />
-                                <ToastContainer />
-                            </CertificateContextProvider>
-                        </DBFromContextProvider>
-                    </MultiStepsFormContextProvider>
+                    <ChatBotProvider>
+                        <MultiStepsFormContextProvider>
+                            <DBFromContextProvider>
+                                <CertificateContextProvider>
+                                    <App />
+                                    <ToastContainer />
+                                </CertificateContextProvider>
+                            </DBFromContextProvider>
+                        </MultiStepsFormContextProvider>
+                    </ChatBotProvider>
                 </SidebarProvider>
             </GoogleOAuthProvider>
         </ThemeProvider>
