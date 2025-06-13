@@ -20,4 +20,5 @@ public interface RoadmapServiceIf {
     CourseNodeDTO updateCourseNodeStatus(String nodeId, String newStatus);
     String buildNormalPrompt(String text, String id);
     void deleteRoadmapById(String roadmapId);
+    void updatePreferences(String userId, String preference);
 }

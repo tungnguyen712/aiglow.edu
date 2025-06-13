@@ -23,4 +23,7 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CertificateEntity> certs = new ArrayList<>();
+
+    @Column(name="preference")
+    private String preference;
 }

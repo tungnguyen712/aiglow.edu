@@ -1,10 +1,7 @@
 package com.example.googleprompt.controller;
 
 import com.example.googleprompt.entity.RoadmapEntity;
-import com.example.googleprompt.model.ManuRMRequest;
-import com.example.googleprompt.model.NormalChat;
-import com.example.googleprompt.model.ProfileRMRequest;
-import com.example.googleprompt.model.RMResponse;
+import com.example.googleprompt.model.*;
 import com.example.googleprompt.model.dto.*;
 import com.example.googleprompt.repository.CourseNodeRepository;
 import com.example.googleprompt.repository.RoadmapRepository;
@@ -115,5 +112,10 @@ public class RoadmapController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
-}
 
+    @PostMapping("/user/preferences")
+    public ResponseEntity<String> updatePreferences(@RequestBody UserPreferenceRequest request) {
+        roadmapService.updatePreferences(request.getUserId(), request.getPreference());
+        return ResponseEntity.ok("Preferences updated successfully");
+    }
+}

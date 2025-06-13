@@ -20,6 +20,7 @@ public class RoadmapEntity {
     private String name;
     private String goal;
     private String userId;
+    @Column(name = "due")
     private LocalDate due;
     private Integer hpw;
     @Column(name = "progress")

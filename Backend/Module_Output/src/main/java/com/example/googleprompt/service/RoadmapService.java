@@ -83,7 +83,10 @@ public class RoadmapService implements RoadmapServiceIf {
         List<String> contextList = embeddingService.searchSimilar(request.getGoal());
         String context = String.join("\n", contextList);
 
-        String prompt = buildPrompt(request, generatedId, nodeIds, context);
+        Optional<UserEntity> userOpt = userRepository.findById(request.getUserId());
+        String preference = userOpt.map(UserEntity::getPreference).orElse(null);
+
+        String prompt = buildPrompt(request, generatedId, nodeIds, context, preference);
         logger.info("Prompt sent to AI:\n{}", prompt);
 
         String aiResponse = promptService.generateTextFromPrompt(prompt);
@@ -153,7 +156,10 @@ public class RoadmapService implements RoadmapServiceIf {
         List<String> contextList = embeddingService.searchSimilar(request.getGoal());
         String context = String.join("\n", contextList);
 
-        String prompt = buildPromptFromProfile(request, nodeIds, context);
+        Optional<UserEntity> userOpt = userRepository.findById(request.getUserId());
+        String preference = userOpt.map(UserEntity::getPreference).orElse(null);
+
+        String prompt = buildPromptFromProfile(request, nodeIds, context, preference);
         logger.info("Prompt sent to AI:\n{}", prompt);
 
         String aiResponse = promptService.generateTextFromPrompt(prompt);
@@ -208,7 +214,8 @@ public class RoadmapService implements RoadmapServiceIf {
         }
     }
 
-    private String buildPrompt(ManuRMRequest request, String roadmapId, List<String> nodeIds, String context) {
+
+    private String buildPrompt(ManuRMRequest request, String roadmapId, List<String> nodeIds, String context, String preference) {
         /*String previousIds = (request.getPreviousRoadmapIds() == null || request.getPreviousRoadmapIds().isEmpty()) ?
                 "None" : String.join(", ", request.getPreviousRoadmapIds());*/
         return String.format("""
@@ -226,15 +233,16 @@ public class RoadmapService implements RoadmapServiceIf {
                                   "link" is the url to the course that help user acquire such skill.
                               - **Do NOT leave "link" empty or null.
                                 **Even if the course name is broad or general, you must provide a URL to a course, tutorial, article, or video that helps the user learn that specific topic or a major part of it.
-                                **If no exact course exists, you MUST still provide a valid working link to an existing tutorial, documentation, or video that covers the topic. NEVER return "undefined" or fake URLs. Prefer courses from platforms like Coursera, Udemy, edX, Khan Academy, Youtube (**real and existing youtube videos) or freeCodeCamp.
+                                **If no exact course exists, you MUST still provide a valid working link to an existing tutorial, documentation, or video that covers the topic. NEVER return "undefined" or fake URLs. Prefer courses from platforms like Coursera, Udemy, edX, Khan Academy or freeCodeCamp.
                               - All nodes should default to "unfinished" status.
       - Average time to finish in hours
       - The ID of the roadmap ("roadmapId")
       - A string of child node IDs in `"children"` (e.g., `"c002,c003"`). If no children, set `"children": ""`.
-
+    
     - The output must be a **flat list** of these 8 nodes, not a tree.
-    - Your advices must be useful and practical.
-    -Please make sure the JSON response is valid and does not contain trailing commas.
+    - Always prioritize goal over preference. If goal is completely different from preference, ignore preference.
+    - Your advices must be useful and practical. And suggesting user key words to search for related videos on Youtube.
+    - Please make sure the JSON response is valid and does not contain trailing commas.
 
     Input:
     - User ID: %s
@@ -246,6 +254,8 @@ public class RoadmapService implements RoadmapServiceIf {
     
     Context (for references):
                 %s
+    
+    Preference: %s
 
     Return a JSON object strictly matching this format:
     {
@@ -280,11 +290,13 @@ public class RoadmapService implements RoadmapServiceIf {
                 request.getSelectedSkills(),
                 request.getRmName() != null ? request.getRmName() : "",
                 //String.join(", ", nodeIds)
-                context
+                context,
+                preference
         );
     }
 
-    private String buildPromptFromProfile(ProfileRMRequest request, List<String> nodeIds, String context) {
+
+    private String buildPromptFromProfile(ProfileRMRequest request, List<String> nodeIds, String context, String preference) {
         String previousIds = (request.getPreviousRoadmapIds() == null || request.getPreviousRoadmapIds().isEmpty())
                 ? "None"
                 : String.join(", ", request.getPreviousRoadmapIds());
@@ -327,15 +339,16 @@ Requirements:
       "link" is the url to the course that help user acquire such skill.
   - **Do NOT leave "link" empty or null.
   - **Even if the course name is broad or general, you must provide a URL to a course, tutorial, article, or video that helps the user learn that specific topic or a major part of it.
-  - **If no exact course exists, you MUST still provide a valid working link to an existing tutorial, documentation, or video that covers the topic. NEVER return "undefined" or fake URLs. Prefer courses from platforms like Coursera, Udemy, edX, Khan Academy, Youtube(**real and existing youtube videos) or freeCodeCamp.
+  - **If no exact course exists, you MUST still provide a valid working link to an existing tutorial, documentation, or video that covers the topic. NEVER return "undefined" or fake URLs. Prefer courses from platforms like Coursera, Udemy, edX, Khan Academy or freeCodeCamp.
   - All nodes should default to "unfinished" status.
   - Average time to finish in hours
   - The ID of the roadmap ("roadmapId")
   - A string of child node IDs in `"children"` (e.g., `"c002,c003"`). If no children, set `"children": ""`.
 
 - The output must be a **flat list** of these 8 nodes, not a tree.
-- Your advices must be useful and practical.
--Please make sure the JSON response is valid and does not contain trailing commas.
+- Always prioritize goal over preference. If goal is completely different from preference, ignore preference.
+- Your advices must be useful and practical. And suggesting user key words to search for related videos on Youtube.
+- Please make sure the JSON response is valid and does not contain trailing commas.
 
 Input:
 - User ID: %s
@@ -348,6 +361,8 @@ Input:
 
 Context (for references):
                 %s
+
+Preference: %s
 
 Return a JSON object strictly matching this format:
 {
@@ -384,10 +399,12 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
                 existingRM,
                 certName,
                 //String.join(",", nodeIds)
-                context
+                context,
+                preference
         );
 
     }
+
 
     /**
      * Lấy roadmap đã tạo theo roadmapId.
@@ -537,6 +554,17 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
         return dto;
     }
 
+    public void updatePreferences(String userId, String preference) {
+        Optional<UserEntity> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isPresent()) {
+            UserEntity user = optionalUser.get();
+            user.setPreference(preference);
+            userRepository.save(user);
+        } else {
+            throw new RuntimeException("User not found with uid: " + userId);
+        }
+    }
+
     private RoadmapEntity mapToEntity(RoadMap dto) {
         RoadmapEntity entity = new RoadmapEntity();
         entity.setId(dto.getRoadmapId());
@@ -628,19 +656,29 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
             You can assist the user in two ways:
                         1. If the user wants to modify the roadmap (change 'due', 'hpw', or any course node that is 'unfinished'), then apply the changes and return the full updated roadmap JSON (preserve all IDs and non-editable fields).
                         2. If the user does NOT request a modification, provide useful advice, learning tips, progress tracking, or encouragement — but strictly based on the current roadmap content.
-        Do not answer with "I will wait for a modification" or similar phrases. Always respond with something helpful related to the roadmap.
+            Do not answer with "I will wait for a modification" or similar phrases. Always respond with something helpful related to the roadmap.
         
             You are only allowed to edit the following fields:
             - Roadmap: due, hpw
             - CourseNodes (only if status is 'unfinished'): name, link, avgTimeToFinish
-
+            - **Even if the course name is broad or general, you must provide a URL to a course, tutorial, article, or video that helps the user learn that specific topic or a major part of it.
+            - **If no exact course exists, you MUST still provide a valid working link to an existing tutorial, documentation, or video that covers the topic. NEVER return "undefined" or fake URLs. Prefer courses from platforms like Coursera, Udemy, edX, Khan Academy or freeCodeCamp.
+            - Only return URLs that you know exist and are widely used. If you are not confident about the exact link, do not invent one. Avoid returning links that may result in a 404 page.
+            - Youtube video url is not a stable source of learning. Your youtube urls are mostly not found. I want you to suggest keywords and youtube channels instead(Only when you have no other resource than Youtube)
+            - All nodes that user requires to change always have their links changed. After changes, courses which are children still have to be children to parent courses. 
+            
             Each course node contains: id, name, avgTimeToFinish, link, status, and childIds (list of string ids).
             Only update course nodes that have status = "unfinished".
 
             Return the full updated roadmap object (as JSON), keeping all IDs and non-editable fields unchanged.
-            After updating the roadmap, giving a response to address where has been changed.
+            After updating, suggesting key words to find related videos on youtube.
+            After updating, only return to user: "I have updated your roadmap. Feel free to let me know if you need any other changes.";
 
             Remember: Your response must always stay within the context of the given roadmap.
+            If the user doesn't request a change to the roadmap, don't bring it up. Just respond normally and answer their question clearly.
+            If the user's message is not related to the roadmap, politely remind them that you can only discuss the roadmap. 
+            If the user is simply greeting, respond with a friendly greeting.
+            If the user doesn't specify where to change in detail and only use general word like "easier" or "harder", you can consider change their due and hpw accordingly.
         """.formatted(roadmapJson);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize roadmap to JSON", e);
@@ -658,17 +696,14 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
         try {
             RoadmapEntity updated = objectMapper.readValue(cleanAIResponse(aiResponse), RoadmapEntity.class);
 
-            // Cập nhật các trường của RoadmapEntity
             existing.setDue(updated.getDue());
             existing.setHpw(updated.getHpw());
             roadmapRepository.save(existing);
 
-            // Lấy danh sách node cũ từ DB
             List<CourseNodeEntity> existingNodes = courseNodeRepository.findByRoadmapId(id);
             Map<String, CourseNodeEntity> nodeMap = existingNodes.stream()
                     .collect(Collectors.toMap(CourseNodeEntity::getId, Function.identity()));
 
-            // Lấy node mới từ updated
             List<CourseNodeEntity> updatedNodes = updated.getCourseNodes();
             List<CourseNodeEntity> nodesToSave = new ArrayList<>();
 
@@ -682,13 +717,12 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
                 }
             }
 
-            // BẮT BUỘC gọi saveAll
             courseNodeRepository.saveAll(nodesToSave);
 
-            return "Update roadmap successfully";
+            return "I have updated your roadmap. Feel free to let me know if you need any other changes.";
 
         } catch (JsonProcessingException e) {
-            return cleanAIResponse(aiResponse);  // fallback nếu không parse được JSON
+            return cleanAIResponse(aiResponse);
         }
     }
 
