@@ -77,7 +77,7 @@ const Login = () => {
                 }
             } catch (error) {
                 console.error(error);
-                toast.error("Somethings went wrong.");
+                toast.error("Something went wrong.");
                 setFormErrors({
                     email: "Email or password incorrect.",
                     password: "Email or password incorrect.",

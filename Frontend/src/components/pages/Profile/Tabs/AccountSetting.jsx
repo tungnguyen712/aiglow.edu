@@ -49,7 +49,7 @@ function AccountSetting() {
             }
         } catch (error) {
             console.error(error);
-            toast.error("Somethings went wrong.");
+            toast.error("Something went wrong.");
         }
     };
 
@@ -69,7 +69,7 @@ function AccountSetting() {
             setFormState({ data: payload });
             console.log("New Cert Payload: ", payload);
 
-            const certResponse = await mainApi.post(URLS.CHAT.SEND_NEW_CERT, payload, {
+            const certResponse = await mainApi.post(URLS.CHAT.SEND_NEW_CERT("u123"), payload, {
                 headers: {
                     "Content-Type": "application/json"
                 }
@@ -80,7 +80,7 @@ function AccountSetting() {
                 window.location.reload();
             } else {
                 console.error("Received empty or invalid response data.");
-                toast.error("Somethings went wrong.");
+                toast.error("Something went wrong.");
             }
             
         } catch (e) {

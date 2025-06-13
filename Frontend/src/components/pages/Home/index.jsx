@@ -3,7 +3,7 @@ import Layout from "@/components/layouts";
 // import ConversationCard from "@/components/views/ConversationCard";
 import RoadmapCard from "@/components/views/RoadmapCard";
 import { Button, Loading } from "@/components/commons";
-import { PlusIcon, NotFound } from "@/assets/icons";
+import { PlusIcon, NotFound, GearIcon } from "@/assets/icons";
 
 import Pagination from "@/components/commons/Pagination";
 import SearchForm from "@/components/views/SearchForm";
@@ -20,7 +20,7 @@ import { useFormDBContext } from "@/context/DBFromContext";
 import { useMultiStepsFormContext } from "@/context/MultiStepsFormContext";
 import { roadmaps } from "@/mock/data";
 import dayjs from "dayjs";
-import { getAccessToken } from "@/utils/auth";
+import { getAccessToken, setAccessToken } from "@/utils/auth";
 import { toast } from "react-toastify";
 
 function Dashboard() {
@@ -30,6 +30,7 @@ function Dashboard() {
     const [query, setQuery] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showPrefModal, setShowPrefModal] = useState(false);
     // const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +40,7 @@ function Dashboard() {
 
     const [selectedUserId, setSelectedUserId] = useState("u123");
     const [deleteId, setDeleteId] = useState(null);
+    const [preferenceText, setPreferenceText] = useState(userProfile?.preference?userProfile.preference:"");
     const [userRoadmaps, setUserRoadmaps] = useState([]);
     
     // const decodeToken = getDecodedToken();
@@ -58,6 +60,20 @@ function Dashboard() {
     //     }
     // },[userId]);
 
+    const handleSetNewCookie = async () => {
+        try {
+            const loginRequest = await mainApi.get(URLS.CHAT.PERSONAL_INFORMATION("u123"));
+
+            if (loginRequest.status === 200) {
+                const token = loginRequest.data;
+                setAccessToken(token);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Something went wrong.");
+        }
+    };
+
     const deleteRoadmaps = async (roadmapId) => {
         try {
             setLoading(true);
@@ -76,7 +92,6 @@ function Dashboard() {
         try {
             setLoading(true);
             const rmListResponse = await mainApi.get(URLS.CHAT.SHOW_ROADMAP(selectedUserId));
-            console.log(rmListResponse);
             if (rmListResponse.data) {
                 console.log("Response data:", rmListResponse.data);
                 setUserRoadmaps(rmListResponse.data);
@@ -161,7 +176,6 @@ function Dashboard() {
         try {
             let roadmapResponse;
             setFormState({ data });
-            console.log("Integrating: ", data);
             if (data.knowledgeSource === "profile") {
                 let existingRoadmapArr = [];
                 userRoadmaps.forEach((roadmap) => {
@@ -200,7 +214,6 @@ function Dashboard() {
                     existingRoadmap: existingRoadmapArr,
                     certName: certNameArr,
                 };
-                console.log("Final Payload Profile: ", payload);
                 roadmapResponse = await mainApi.post(URLS.CHAT.SEND_ROADMAP_REQ_AUTO, payload, {headers: {
                         "Content-Type": "application/json"
                 }});
@@ -210,7 +223,6 @@ function Dashboard() {
                 }});
             }
             if (roadmapResponse.data) {
-                console.log("Response data:", roadmapResponse.data);
                 navigate(`/chat/${roadmapResponse.data.roadmap.roadmapId}`);
             } else {
                 console.error("Received empty or invalid response data.");
@@ -254,19 +266,49 @@ function Dashboard() {
         setShowModal(!showModal)
     }
 
+    const handlePreference = async () => {
+        try {
+            setIsSubmitting(true);
+            await mainApi.post(URLS.CHAT.UPDATE_CUSTOM_PREFERENCE, 
+                { userId: "u123", preference: preferenceText }, 
+                {
+                    headers: { "Content-Type": "application/json" }
+                }
+            );
+            await handleSetNewCookie();
+            toast.success("Preference Updated Successfully!");
+        } catch (error) {
+            console.error("Error preparing data:", error);
+            toast.error("Something went wrong.");
+        } finally {
+            setShowPrefModal(false);
+            setIsSubmitting(false);
+        }
+    }
+
     return (
         <Layout title="Overview">
             <Fragment>
                 <div className="flex flex-col-reverse lg:flex-row lg:items-center lg:justify-between mb-5">
                     <SearchForm query={query} setQuery={setQuery}/>
 
-                    <Button
-                        content="New Roadmap"
-                        icon={<PlusIcon/>}
-                        iconPosition="left"
-                        handleEvent={handleNewChat}
-                        className="px-3 py-2.5 w-fit text-gray-500 dark:hover:text-white text-sm rounded-xl border border-dashed border-gray-500 dark:border-gray-500 transition duration-300"
-                    />
+                    <div>
+                        <Button
+                            content="Edit Custom Preferences"
+                            icon={<GearIcon />}
+                            iconPosition="left"
+                            handleEvent={() => setShowPrefModal(true)}
+                            className="mr-3 px-3 py-2.5 w-fit text-gray-500 dark:hover:text-white hover:text-black text-sm rounded-xl border border-dashed border-gray-500 dark:border-gray-500 transition duration-300"
+                        />
+
+                        <Button
+                            content="New Roadmap"
+                            icon={<PlusIcon />}
+                            iconPosition="left"
+                            handleEvent={handleNewChat}
+                            className="px-3 py-2.5 w-fit text-gray-500 dark:hover:text-white hover:text-black text-sm rounded-xl border border-dashed border-gray-500 dark:border-gray-500 transition duration-300"
+                        />
+                    </div>                    
                 </div>
                 {loading ? (
                     <Loading/>
@@ -361,6 +403,58 @@ function Dashboard() {
                                 </div>
                             </div>
                         </Modal>
+                        <Modal isShow={showPrefModal} noBorder={true} onClose={() => setShowPrefModal(false)}>
+                            <div className="flex flex-col items-center space-y-6 text-center">
+                                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-300/10">
+                                <svg
+                                    className="w-8 h-8 text-blue-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 20h9M12 4h9M4 12h16M4 4h4v4H4V4zm0 12h4v4H4v-4z"
+                                    />
+                                </svg>
+                                </div>
+                                <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                    Update Your Preference
+                                </h2>
+                                <p className="text-gray-600 dark:text-gray-300">
+                                    Share what your current career goal or company policy is. This will help tailor your learning path.
+                                </p>
+
+                                <textarea
+                                    value={preferenceText}
+                                    onChange={(e) => setPreferenceText(e.target.value)}
+                                    rows="4"
+                                    placeholder="e.g. I want to become a DevOps Engineer"
+                                    className="w-full px-4 py-2 border rounded-lg resize-none dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                                />
+
+                                <div className="flex space-x-4 w-full">
+                                    <Button
+                                        type="button"
+                                        content="Save Preference"
+                                        handleEvent={() => handlePreference(preferenceText)}
+                                        isSubmitting={isSubmitting}
+                                        disabled={isSubmitting}
+                                        className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                                    />
+                                    <Button
+                                        type="button"
+                                        content="Cancel"
+                                        handleEvent={() => setShowPrefModal(false)}
+                                        isSubmitting={isSubmitting}
+                                        disabled={isSubmitting}
+                                        className="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-150"
+                                    />
+                                </div>
+                            </div>
+                            </Modal>
                     </Fragment>
                 )}
             </Fragment>

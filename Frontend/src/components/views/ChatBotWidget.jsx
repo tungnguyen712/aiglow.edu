@@ -40,14 +40,15 @@ const ChatBotWidget = () => {
         });
         if (chatResponse.data) {
           console.log("Chat Response: ", chatResponse);
-          setChatHistory((prev) => [...prev, { sender: "bot", text: chatResponse.data }]);
+          const cleanText = chatResponse.data.replace(/\*/g, "");
+          setChatHistory((prev) => [...prev, { sender: "bot", text: cleanText }]);
           if (chatResponse.data === "I have updated your roadmap. Feel free to let me know if you need any other changes.") {
             setUpdateRequired(true);
           }
         }
     } catch (error) {
         console.error(error);
-        toast.error("Somethings went wrong.");
+        toast.error("Something went wrong.");
     } finally {
         setLoadingState(false);
     }
@@ -87,7 +88,7 @@ const ChatBotWidget = () => {
   }, [chatHistory]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <>
       {/* FAB Toggle Button */}
       {!open && (
         <button
@@ -100,7 +101,7 @@ const ChatBotWidget = () => {
 
       {/* Chat Window */}
       <div
-        className={`origin-bottom-right transition-all duration-300 ease-in-out transform ${
+        className={`fixed bottom-6 right-6 origin-bottom-right transition-all duration-300 ease-in-out transform z-50 ${
           open
             ? "scale-100 opacity-100"
             : "scale-0 opacity-0 pointer-events-none"
@@ -123,18 +124,25 @@ const ChatBotWidget = () => {
             className="flex-1 overflow-y-auto px-4 py-2 space-y-2"
             ref={chatBoxRef}
           >
-            {!loadingState?chatHistory.map((msg, index) => (
-              <div
-                key={index}
-                className={`text-sm max-w-[80%] px-3 py-2 rounded-xl ${
-                  msg.sender === "user"
-                    ? "bg-blue-500 text-white self-end ml-auto"
-                    : "bg-gray-200 text-black self-start"
-                }`}
-              >
-                {msg.text}
+            {chatHistory.map((msg, index) => (
+              <>
+                <div
+                  key={index}
+                  className={`text-sm max-w-[80%] px-3 py-2 rounded-xl ${
+                    msg.sender === "user"
+                      ? "bg-blue-500 text-white self-end ml-auto"
+                      : "bg-gray-200 text-black self-start"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </>
+            ))}
+            {loadingState && (
+              <div className={`max-w-[80%] px-3 py-2 self-start`}>
+                <Skeleton />
               </div>
-            )):(<Skeleton />)}
+            )}
           </div>
 
           {/* Input Area */}
@@ -179,7 +187,7 @@ const ChatBotWidget = () => {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

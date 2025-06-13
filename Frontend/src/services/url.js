@@ -17,10 +17,11 @@ export const URLS = {
         SEND_ROADMAP_REQ_AUTO: "api/roadmap/create/auto",
         PERSONAL_INFORMATION: ((userId) => `api/user/${userId}`),
         SHOW_ROADMAP: ((userId) => `api/roadmap/user/${userId}`),
-        SEND_NEW_CERT: "api/user/u123/certificates",
+        SEND_NEW_CERT: ((userId) => `api/user/${userId}/certificates`),
         UPDATE_COURSE_NODE_STATUS: ((courseNodeId) => `api/nodes/${courseNodeId}/status`),
         DELETE_ROADMAP: ((roadmapId) => `api/roadmap/${roadmapId}/delete`),
         SEND_CHATBOT_MESSAGE: "api/chat",
+        UPDATE_CUSTOM_PREFERENCE: "api/user/preferences",
     },
 
     AUTH: {

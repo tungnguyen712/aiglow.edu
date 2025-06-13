@@ -119,9 +119,6 @@ const MultiStepsForm = ({ onComplete, submitting }) => {
             errors.hoursPerWeek = "Please enter hours per week.";
         } else if (isNaN(hours) || hours <= 0 || hours > 98) {
             errors.hoursPerWeek = "Please enter a valid number.";
-            if (hours > 40) {
-                console.log("a");
-            }
         } 
 
         setTimeErrors(errors);

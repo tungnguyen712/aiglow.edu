@@ -47,9 +47,7 @@ function Chat() {
     // const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [courseList, setCourseList] = useState([]);
-    console.log("statusContext: ", statusContext);
     const [isLate, setIsLate] = useState(false);
-    console.log("isLate: ", isLate);
     // const { link, setLink } = useState([]);
 
     // const [mockMessage, setMockMessage] = useState("Try Typing Something!");
@@ -114,7 +112,6 @@ function Chat() {
     // };
 
     const handleCheckboxChange = async (courseId) => {
-        console.log("Checkbox clicked for course ID:", courseId);
         let newStatus = "";
         const updatedCourseList = courseList.map(course => {
             if (course.id === courseId) {
@@ -147,7 +144,6 @@ function Chat() {
     }
 
     const regenMap = () => {
-        console.log("LinhTinh");
         setShowUpdateModal(true);
     }
 
@@ -269,7 +265,7 @@ function Chat() {
                                 className="mt-2 inline-block bg-cyan-500 text-white px-3 py-1 rounded hover:bg-cyan-600"
                                 onClick={() => {
                                     setUpdateRequired(false);
-                                    window.location.reload();
+                                    loadNodes();
                                 }}
                             >
                                 Reload Page

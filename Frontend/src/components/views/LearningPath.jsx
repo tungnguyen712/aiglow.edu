@@ -9,31 +9,51 @@ const LearningPath = ({ courseList }) => {
   const startNode = {
     id: "start",
     type: "default",
-    data: { label: "Start your journey here" },
-    position: { x: 0, y: -100 },
+    data: { label: "🚀 Start your journey here" },
+    position: { x: 0, y: -150 },
     style: {
       backgroundColor: "#facc15", // amber-400
-      color: "#000",
-      padding: 10,
-      borderRadius: 12,
-      fontSize: "16px",
-      fontWeight: 700,
+      color: "#1f2937", // gray-800
+      padding: 16,
+      borderRadius: 20,
+      fontSize: "18px",
+      fontWeight: "bold",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+      border: "2px solid #fbbf24", // amber-300
+      maxWidth: 250,
+      textAlign: "center",
     },
   };
 
-  const rawNodes = [startNode, ...(courseList?.map((course, index) => ({
-    id: course.id,
-    type: "default",
-    data: { label: course.name },
-    position: { x: 200 * (index % 4), y: Math.floor(index / 4) * 150 },
-    style: {
-      backgroundColor: course.status === "finished" ? "#60A5FA" : "#86efac",
-      color: "#000",
-      padding: 10,
-      borderRadius: 12,
-      fontWeight: 700
-    },
-  })) || [])];
+  const rawNodes = [
+    startNode,
+    ...(courseList?.map((course, index) => ({
+      id: course.id,
+      type: "default",
+      data: { label: `${course.name}` },
+      position: {
+        x: 280 * (index % 4), // more spacing horizontally
+        y: Math.floor(index / 4) * 200, // more spacing vertically
+      },
+      style: {
+        backgroundColor:
+          course.status === "finished"
+            ? "#3b82f6" // blue-500
+            : course.status === "in-progress"
+            ? "#facc15" // amber-400
+            : "#86efac", // green-300
+        color: "#1f2937", // gray-800
+        padding: 16,
+        borderRadius: 20,
+        fontSize: "16px",
+        fontWeight: "600",
+        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+        border: "2px solid #e5e7eb", // gray-200
+        maxWidth: 240,
+        textAlign: "center",
+      },
+    })) || []),
+  ];
 
   const allChildIds = new Set(courseList?.flatMap(course =>
     course?.childIds?.split(',').map(id => id.trim()).filter(Boolean)

@@ -462,7 +462,7 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
                     .collect(Collectors.toList());
 
             return new UserDTO(
-                    user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), certDTOs);
+                    user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), certDTOs, user.getPreference());
         });
     }
 
@@ -659,7 +659,7 @@ Ensure the output is valid JSON with no markdown, explanations, or surrounding t
             Do not answer with "I will wait for a modification" or similar phrases. Always respond with something helpful related to the roadmap.
         
             You are only allowed to edit the following fields:
-            - Roadmap: due, hpw
+            - Roadmap: due, hpw (min=1, max=40)
             - CourseNodes (only if status is 'unfinished'): name, link, avgTimeToFinish
             - **Even if the course name is broad or general, you must provide a URL to a course, tutorial, article, or video that helps the user learn that specific topic or a major part of it.
             - **If no exact course exists, you MUST still provide a valid working link to an existing tutorial, documentation, or video that covers the topic. NEVER return "undefined" or fake URLs. Prefer courses from platforms like Coursera, Udemy, edX, Khan Academy or freeCodeCamp.
