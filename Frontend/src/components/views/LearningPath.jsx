@@ -20,7 +20,7 @@ const LearningPath = ({ courseList }) => {
       fontWeight: "bold",
       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
       border: "2px solid #fbbf24", // amber-300
-      maxWidth: 250,
+      width: 160,
       textAlign: "center",
     },
   };
@@ -36,20 +36,19 @@ const LearningPath = ({ courseList }) => {
         y: Math.floor(index / 4) * 200, // more spacing vertically
       },
       style: {
-        backgroundColor:
-          course.status === "finished"
-            ? "#3b82f6" // blue-500
-            : course.status === "in-progress"
-            ? "#facc15" // amber-400
-            : "#86efac", // green-300
-        color: "#1f2937", // gray-800
-        padding: 16,
-        borderRadius: 20,
-        fontSize: "16px",
+        backgroundColor: course.status === "finished"
+          ? "#3b82f6"
+          : course.status === "in-progress"
+          ? "#facc15"
+          : "#86efac",
+        color: course.status === "finished"?"white":"#1f2937",
+        padding: 8,
+        borderRadius: 12,
+        fontSize: "14px",
         fontWeight: "600",
-        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-        border: "2px solid #e5e7eb", // gray-200
-        maxWidth: 240,
+        boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+        border: "1px solid #e5e7eb",
+        width: 160,
         textAlign: "center",
       },
     })) || []),

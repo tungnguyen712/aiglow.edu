@@ -440,7 +440,10 @@ const MultiStepsForm = ({ onComplete, submitting }) => {
                                 <Button
                                     type="button"
                                     content="Back To Step 1"
-                                    handleEvent={() => setStep(1)}
+                                    handleEvent={() => {
+                                        setStep(1);
+                                        setGoal("");
+                                    }}
                                     className="transition delay-50 duration-200 ease-in-out w-full py-2.5 bg-gray-900 text-gray-300 rounded-lg shadow-md hover:bg-black"
                                 />
 
@@ -458,7 +461,6 @@ const MultiStepsForm = ({ onComplete, submitting }) => {
                                     type="button"
                                     content="Back"
                                     handleEvent={() => setStep(3)}
-                                    isSubmitting={submitting}
                                     disabled={submitting}
                                     className="transition delay-50 duration-200 ease-in-out w-full py-2.5 bg-gray-900 text-gray-300 rounded-lg shadow-md hover:bg-black"
                                 />

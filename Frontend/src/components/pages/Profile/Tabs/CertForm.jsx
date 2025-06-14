@@ -400,12 +400,11 @@ const CertForm = ({ onComplete, submitting }) => {
 
                         <div className="flex justify-between gap-4">
                             <Button
-                            type="button"
-                            content="Back"
-                            handleEvent={() => setStep(2)}
-                            isSubmitting={submitting}
-                            disabled={submitting}
-                            className="transition delay-50 duration-200 ease-in-out w-full py-2.5 bg-gray-900 text-gray-300 rounded-lg shadow-md hover:bg-black"
+                                type="button"
+                                content="Back"
+                                handleEvent={() => setStep(2)}
+                                disabled={submitting}
+                                className="transition delay-50 duration-200 ease-in-out w-full py-2.5 bg-gray-900 text-gray-300 rounded-lg shadow-md hover:bg-black"
                             />
                             <Button
                                 type="submit"

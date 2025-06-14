@@ -448,7 +448,6 @@ function Dashboard() {
                                         type="button"
                                         content="Cancel"
                                         handleEvent={() => setShowPrefModal(false)}
-                                        isSubmitting={isSubmitting}
                                         disabled={isSubmitting}
                                         className="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-150"
                                     />

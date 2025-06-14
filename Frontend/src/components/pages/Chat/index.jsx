@@ -48,6 +48,13 @@ function Chat() {
 
     const [courseList, setCourseList] = useState([]);
     const [isLate, setIsLate] = useState(false);
+
+    const [isFirstLoad, setIsFirstLoad] = useState(true);
+
+    useEffect(() => {
+        setIsFirstLoad(false);
+    }, []);
+
     // const { link, setLink } = useState([]);
 
     // const [mockMessage, setMockMessage] = useState("Try Typing Something!");
@@ -347,28 +354,49 @@ function Chat() {
                                                     style={{ textDecoration: "none" }}
                                                     className="flex items-center gap-2 text-sm text-indigo-700 dark:text-indigo-300 hover:underline"
                                                 >
-                                                    <TypeAnimation
-                                                        key={course.status}
-                                                        sequence={[course.name]}
-                                                        speed={50}
-                                                        wrapper="span"
-                                                        cursor={false}
-                                                        style={{ display: "block" }}
-                                                        className={`text-lg ${course.status === "finished" ? "text-gray-400 line-through" : "text-green-600"}`}
-                                                    />
+                                                    {isFirstLoad ? (
+                                                        <TypeAnimation
+                                                            sequence={[course.name]}
+                                                            speed={50}
+                                                            wrapper="span"
+                                                            cursor={false}
+                                                            style={{ display: "block" }}
+                                                            className={`text-lg ${course.status === "finished" ? "text-gray-400 line-through" : "text-green-600"}`}
+                                                        />
+                                                    ) : (
+                                                        <span className={`
+                                                            text-lg transition-all duration-300 
+                                                            ${course.status === "finished" 
+                                                                ? "text-gray-400 line-through decoration-gray-400" 
+                                                                : "text-green-600 line-through decoration-transparent"}
+                                                        `}>
+                                                            {course.name}
+                                                        </span>
+                                                    )}
                                                 </a>
                                             </div>
                                             <div className="ml-6">
                                                 <a href={course.link}>
-                                                    <TypeAnimation
-                                                        key={course.status}
-                                                        sequence={[truncatedLink]}
-                                                        speed={50}
-                                                        wrapper="span"
-                                                        cursor={false}
-                                                        style={{ display: "block" }}
-                                                        className={`text-sm text-gray-400 ${course.status === "finished" ? "line-through" : ""}`}
-                                                    />
+                                                    {isFirstLoad ? (
+                                                        <TypeAnimation
+                                                            key={course.status}
+                                                            sequence={[truncatedLink]}
+                                                            speed={50}
+                                                            wrapper="span"
+                                                            cursor={false}
+                                                            style={{ display: "block" }}
+                                                            className={`text-sm text-gray-400 ${course.status === "finished" ? "line-through" : ""}`}
+                                                        />
+                                                    ) : (
+                                                        <span className={`
+                                                            text-sm transition-all duration-300 text-gray-400
+                                                            ${course.status === "finished" 
+                                                                ? "line-through decoration-gray-400" 
+                                                                : "line-through decoration-transparent"}
+                                                        `}>
+                                                            {truncatedLink}
+                                                        </span>
+                                                    )}
                                                 </a>
                                                 <TypeAnimation
                                                     sequence={[`Average time to finish the course: ${course.avgTimeToFinish} hours`]}

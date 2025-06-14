@@ -168,7 +168,7 @@ const ConnectedInfo =  () => {
                 <div>
                     <div className="flex items-center gap-1.5 mb-4">
                         <p className="mb-2 text-lg text-gray-800 font-bold dark:text-gray-200">{roadmap?.name}</p>
-                        <Tooltip text="In Dev">
+                        <Tooltip text="Under Development">
                             <Button
                                 disabled={true}
                                 className="flex items-center justify-center mb-1 w-6 h-6 bg-slate-50 text-gray-500 dark:bg-slate-800 dark:text-white transition-all duration-300 hover:bg-gray-700 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white rounded-full" 
